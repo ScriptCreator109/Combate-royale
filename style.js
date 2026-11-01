@@ -1,18 +1,3 @@
-// ================= CONFIGURAÇÕES INICIAIS =================
-const BRAWLER_DATA = {
-  shelly: { name: 'Shelly', hp: 5000, dmg: 500, emoji: '🥷' },
-  colt: { name: 'Colt', hp: 4200, dmg: 400, emoji: '🤠' },
-  primo: { name: 'El Primo', hp: 8000, dmg: 800, emoji: '👊' },
-  spike: { name: 'Spike', hp: 3600, dmg: 600, emoji: '🌵' },
-  corvo: { name: 'Corvo', hp: 3400, dmg: 450, emoji: '🐦' }
-};
-
-let currentPlayerData = { trophies: 0, gems: 0, coins: 0, selectedBrawler: 'shelly' };
-try {
-  const saved = localStorage.getItem('combateRoyale');
-  if (saved) currentPlayerData = JSON.parse(saved);
-} catch(e) {}
-
 let game = { active: false, player: {}, bots: [], bullets: [], walls: [], bushes: [], clouds: [], boxes: [], cubes: [], timeLeft: 300, kills: 0 };
 let moveTarget = null, animFrame = null, timerInterval = null, cloudInterval = null;
 
@@ -57,7 +42,7 @@ function startSolo() {
   document.getElementById('hpFill').style.background = '#00ff88';
   document.getElementById('killCount').innerText = '0';
   
-  // Criar Paredes
+  // Paredes
   for (let i = 0; i < 12; i++) {
     let x = Math.random() * 2000, y = Math.random() * 2000, w = 100, h = 100;
     if (Math.hypot(x - 1000, y - 1000) > 300) {
@@ -67,7 +52,7 @@ function startSolo() {
     }
   }
   
-  // Criar Arbustos
+  // Arbustos
   for (let i = 0; i < 15; i++) {
     let x = Math.random() * 2000, y = Math.random() * 2000, r = 50;
     game.bushes.push({x,y,r});
@@ -75,12 +60,12 @@ function startSolo() {
     document.getElementById('arena').appendChild(el);
   }
   
-  // Criar Player
+  // Player
   let pEl = document.createElement('div'); pEl.className = 'player'; pEl.id = 'playerEl'; pEl.innerText = bData.emoji;
   pEl.style.left = game.player.x + 'px'; pEl.style.top = game.player.y + 'px';
   document.getElementById('arena').appendChild(pEl);
   
-  // Criar Bots
+  // Bots
   for (let i = 0; i < 9; i++) {
     let bx = 100 + Math.random() * 1800, by = 100 + Math.random() * 1800;
     if (Math.hypot(bx - 1000, by - 1000) < 400) { bx += 500; }
@@ -109,7 +94,7 @@ function startSolo() {
   cloudInterval = setInterval(() => { if(game.active) spawnCloud(); }, 3000);
 }
 
-// ================= CAIXAS E CUBOS DE VIDA =================
+// ================= CAIXAS, CUBOS E NUVEM =================
 function spawnBoxes() {
   for (let i = 0; i < 5; i++) {
     let bx = 200 + Math.random() * 1600;
@@ -136,7 +121,6 @@ function dropCube(x, y) {
   document.getElementById('arena').appendChild(el);
 }
 
-// ================= NUVEM TÓXICA =================
 function spawnCloud() {
   let cx = Math.random() * 2000;
   let cy = Math.random() * 2000;
@@ -152,9 +136,7 @@ function spawnCloud() {
   el.style.height = (r * 2) + 'px';
   el.id = 'cloud-' + game.clouds.length;
   document.getElementById('arena').appendChild(el);
-}
-
-// ================= CONTROLES DE TOQUE =================
+  }
 function setupTouchControls() {
   const zone = document.getElementById('joystickZone');
   
@@ -207,11 +189,11 @@ function shootBullet(x, y, angle, owner) {
   b.el = el;
 }
 
-// ================= O LOOP DO JOGO =================
+// ================= LOOP DO JOGO =================
 function loop() {
   if (!game.active) return;
   
-  // 1. Movimentação do Player
+  // Movimento Player
   if (moveTarget) {
     let dx = moveTarget.x - (game.player.x + 20);
     let dy = moveTarget.y - (game.player.y + 20);
@@ -227,7 +209,7 @@ function loop() {
   document.getElementById('playerEl').style.left = game.player.x + 'px';
   document.getElementById('playerEl').style.top = game.player.y + 'px';
   
-  // 2. Bots
+  // Bots
   for (let b of game.bots) {
     let dx = game.player.x - b.x;
     let dy = game.player.y - b.y;
@@ -254,7 +236,7 @@ function loop() {
     }
   }
   
-  // 3. Nuvem Tóxica
+  // Nuvem Tóxica
   for (let c of game.clouds) {
     let dist = Math.hypot(game.player.x - c.x, game.player.y - c.y);
     if (dist < c.r) {
@@ -262,7 +244,7 @@ function loop() {
     }
   }
   
-  // 4. Balas
+  // Balas
   for (let i = game.bullets.length - 1; i >= 0; i--) {
     let b = game.bullets[i];
     b.x += b.vx; b.y += b.vy; b.life--;
@@ -314,7 +296,7 @@ function loop() {
     }
   }
   
-  // 5. Cubos de vida
+  // Cubos de vida
   for (let i = game.cubes.length - 1; i >= 0; i--) {
     let c = game.cubes[i];
     if (Math.hypot(c.x - game.player.x, c.y - game.player.y) < 35) {
@@ -363,8 +345,7 @@ function endGame(result) {
   openModal('endModal');
 }
 
-// ================= SISTEMA DE AUTENTICAÇÃO BÁSICA (LOCAL) =================
-// Como ainda não configuramos o Firebase real, isto apenas fecha o modal de login
+// ================= AUTENTICAÇÃO BÁSICA =================
 function toggleAuth() {
   const title = document.getElementById('authTitle');
   if (title.innerText === 'Entrar') {
@@ -381,4 +362,4 @@ function toggleAuth() {
 function handleAuth() {
   closeModal('authModal');
   showToast('Login efetuado!');
-                           }
+}
