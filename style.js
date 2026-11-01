@@ -19,6 +19,10 @@ let meuId = null;
 let game = { active: false, player: {}, bots: [], bullets: [], walls: [], bushes: [], clouds: [], boxes: [], cubes: [], timeLeft: 300, kills: 0 };
 let moveJoystick = { active: false, dx: 0, dy: 0, touchId: null };
 let animFrame = null, timerInterval = null, cloudInterval = null;
+let modoOnline = false;
+let outrosJogadores = {};
+let syncInterval = null;
+let salaAtual = 'sala_1';
 
 // ================= LOGIN E CONTA =================
 function handleAuth() {
@@ -42,11 +46,10 @@ function handleAuth() {
 auth.onAuthStateChanged(user => {
   if (user) {
     meuId = user.uid;
-    document.getElementById('royalResult').innerText = "Logado com sucesso!";
-    console.log("Jogador logado:", meuId);
+    if(document.getElementById('royalResult')) document.getElementById('royalResult').innerText = "Logado com sucesso!";
   } else {
     meuId = null;
-    document.getElementById('royalResult').innerText = "Não logado";
+    if(document.getElementById('royalResult')) document.getElementById('royalResult').innerText = "Não logado";
   }
 });
 
@@ -95,6 +98,7 @@ function returnToMenu() {
   if(timerInterval) clearInterval(timerInterval); 
   if(cloudInterval) clearInterval(cloudInterval); 
   moveJoystick.active = false; moveJoystick.dx = 0; moveJoystick.dy = 0;
+  sairDaSala();
   document.getElementById('gameScreen').innerHTML = '';
   document.getElementById('gameScreen').style.display = 'none';
   document.getElementById('menuScreen').classList.remove('hide'); 
@@ -116,10 +120,16 @@ function updateUI() {
 }
 updateUI();
 
-// ================= JOGO =================
-function startSolo() {
-  closeModal('eventsModal'); document.getElementById('menuScreen').classList.add('hide'); document.getElementById('gameScreen').classList.add('active');
-  game.active = true; game.bots = []; game.bullets = []; game.clouds = []; game.walls = []; game.bushes = []; game.boxes = []; game.cubes = []; game.kills = 0; game.timeLeft = 300; 
+// ================= CRIAÇÃO DA BASE DO JOGO =================
+function criarBaseJogo() {
+  closeModal('eventsModal'); 
+  document.getElementById('menuScreen').classList.add('hide'); 
+  document.getElementById('gameScreen').classList.add('active');
+  
+  game.active = true; 
+  game.bots = []; game.bullets = []; game.clouds = []; game.walls = []; game.bushes = []; game.boxes = []; game.cubes = []; 
+  game.kills = 0; game.timeLeft = 300; 
+  
   const bData = BRAWLER_DATA[currentPlayerData.selectedBrawler];
   game.player = { x: 1500, y: 1500, hp: bData.hp, maxHp: bData.hp, brawler: currentPlayerData.selectedBrawler, shootCooldown: 0, angle: 0 };
   
@@ -131,7 +141,8 @@ function startSolo() {
     <div id="joystickZone"></div><div id="joystickBase"></div><div id="joystickKnob"></div>
     <button id="fireBtn">🔥</button>
   `;
-  document.getElementById('gameScreen').style.display = 'block'; document.getElementById('gameScreen').classList.add('active');
+  document.getElementById('gameScreen').style.display = 'block'; 
+  document.getElementById('gameScreen').classList.add('active');
   
   for (let i = 0; i < 20; i++) {
     let x = Math.random() * 3000, y = Math.random() * 3000, w = 150, h = 150;
@@ -145,29 +156,96 @@ function startSolo() {
   let pEl = document.createElement('div'); pEl.className = 'player'; pEl.id = 'playerEl'; pEl.innerText = bData.emoji;
   pEl.style.left = game.player.x + 'px'; pEl.style.top = game.player.y + 'px'; document.getElementById('arena').appendChild(pEl);
   
+  spawnBoxes(); setupTouchControls(); 
+  if(animFrame) cancelAnimationFrame(animFrame); 
+  loop();
+  
+  if(timerInterval) clearInterval(timerInterval);
+  timerInterval = setInterval(() => { if (!game.active) return; game.timeLeft--; document.getElementById('timerDisplay').innerText = `${Math.floor(game.timeLeft/60).toString().padStart(2,'0')}:${(game.timeLeft%60).toString().padStart(2,'0')}`; if (game.timeLeft <= 0) endGame('draw'); }, 1000);
+  if(cloudInterval) clearInterval(cloudInterval); 
+  cloudInterval = setInterval(() => { if(game.active) spawnCloud(); }, 4000);
+}
+
+function startSolo() {
+  modoOnline = false;
+  criarBaseJogo();
   for (let i = 0; i < 9; i++) {
     let ang = (i / 9) * Math.PI * 2;
     let bx = 1500 + Math.cos(ang) * 400;
     let by = 1500 + Math.sin(ang) * 400;
     let b = { id: i, x: bx, y: by, hp: 2600, maxHp: 2600, speed: 1.5, shootTimer: Math.random() * 60 + 30 };
     game.bots.push(b);
-    
     let el = document.createElement('div'); el.className = 'bot'; el.id = 'bot-' + i; el.innerText = '🤖';
     el.style.left = bx + 'px'; el.style.top = by + 'px'; 
     el.innerHTML += `<div style="position:absolute; top:-15px; left:0; width:100%; height:8px; background:#333; border-radius:4px; overflow:hidden;"><div id="hp-fill-bot-${i}" style="width:100%; height:100%; background:#00ff88;"></div></div>`;
     document.getElementById('arena').appendChild(el);
   }
+}// ================= MULTIPLAYER ONLINE =================
+function startMultiplayer() {
+  if (!meuId) { showToast("Faz Login primeiro para jogar Online!"); openModal('authModal'); return; }
   
-  spawnBoxes(); setupTouchControls(); if(animFrame) cancelAnimationFrame(animFrame); loop();
-  if(timerInterval) clearInterval(timerInterval);
-  timerInterval = setInterval(() => { if (!game.active) return; game.timeLeft--; document.getElementById('timerDisplay').innerText = `${Math.floor(game.timeLeft/60).toString().padStart(2,'0')}:${(game.timeLeft%60).toString().padStart(2,'0')}`; if (game.timeLeft <= 0) endGame('draw'); }, 1000);
-  if(cloudInterval) clearInterval(cloudInterval); cloudInterval = setInterval(() => { if(game.active) spawnCloud(); }, 4000);
+  modoOnline = true;
+  criarBaseJogo();
+  
+  document.querySelector('.kill-counter').innerHTML = 'Modo: <span style="color:#00ccff">ONLINE</span>';
+  
+  const dbRef = db.ref('salas/' + salaAtual + '/jogadores');
+  dbRef.child(meuId).set({
+    x: game.player.x, y: game.player.y, hp: game.player.hp, brawler: currentPlayerData.selectedBrawler, emoji: BRAWLER_DATA[currentPlayerData.selectedBrawler].emoji
+  });
+
+  dbRef.on('value', (snapshot) => {
+    const jogadores = snapshot.val();
+    if (!jogadores) return;
+
+    for (let id in jogadores) {
+      if (id === meuId) continue;
+      let p = jogadores[id];
+      if (!outrosJogadores[id]) {
+        let el = document.createElement('div');
+        el.className = 'player'; 
+        el.style.background = 'radial-gradient(circle at 30% 30%, #ff00ff, #9900cc)';
+        el.id = 'op-' + id; el.innerText = p.emoji;
+        el.innerHTML += `<div style="position:absolute; top:-15px; left:0; width:100%; height:8px; background:#333; border-radius:4px; overflow:hidden;"><div id="hp-op-${id}" style="width:100%; height:100%; background:#00ccff;"></div></div>`;
+        document.getElementById('arena').appendChild(el);
+        outrosJogadores[id] = { el: el };
+      }
+      let el = document.getElementById('op-' + id);
+      if (el) {
+        el.style.left = p.x + 'px'; el.style.top = p.y + 'px';
+        let hpBar = document.getElementById('hp-op-' + id);
+        if(hpBar) hpBar.style.width = (p.hp / 5000 * 100) + '%';
+      }
+    }
+  });
+
+  if(syncInterval) clearInterval(syncInterval);
+  syncInterval = setInterval(() => {
+    if (game.active && meuId) {
+      db.ref('salas/' + salaAtual + '/jogadores/' + meuId).update({
+        x: Math.floor(game.player.x), y: Math.floor(game.player.y), hp: game.player.hp
+      });
+    }
+  }, 100);
+
+  showToast("Entraste no Multijogador!");
 }
 
+function sairDaSala() {
+  if (meuId) {
+    db.ref('salas/' + salaAtual + '/jogadores/' + meuId).remove();
+    db.ref('salas/' + salaAtual + '/jogadores').off();
+  }
+  if(syncInterval) clearInterval(syncInterval);
+  outrosJogadores = {};
+}
+
+// ================= MAPA =================
 function spawnBoxes() { for (let i = 0; i < 6; i++) { let bx = 200 + Math.random() * 2600, by = 200 + Math.random() * 2600; game.boxes.push({ id: i, x: bx, y: by, hp: 1000, maxHp: 1000 }); let el = document.createElement('div'); el.className = 'box'; el.id = 'box-' + i; el.style.left = bx + 'px'; el.style.top = by + 'px'; document.getElementById('arena').appendChild(el); } }
 function dropCube(x, y) { game.cubes.push({ x: x, y: y }); let el = document.createElement('div'); el.className = 'cube'; el.style.left = x + 'px'; el.style.top = y + 'px'; el.id = 'cube-' + game.cubes.length; document.getElementById('arena').appendChild(el); }
 function spawnCloud() { let cx = Math.random() * 3000, cy = Math.random() * 3000; let r = 150 + Math.random() * 100; game.clouds.push({ x: cx, y: cy, r: r }); let el = document.createElement('div'); el.className = 'cloud'; el.style.left = (cx - r) + 'px'; el.style.top = (cy - r) + 'px'; el.style.width = (r * 2) + 'px'; el.style.height = (r * 2) + 'px'; document.getElementById('arena').appendChild(el); }
 
+// ================= CONTROLOS =================
 function setupTouchControls() {
   const zone = document.getElementById('joystickZone'); const base = document.getElementById('joystickBase'); const knob = document.getElementById('joystickKnob'); let startX = 0, startY = 0;
   const pararBoneco = () => { moveJoystick.active = false; moveJoystick.dx = 0; moveJoystick.dy = 0; base.style.display = 'none'; knob.style.display = 'none'; };
@@ -186,8 +264,10 @@ function setupTouchControls() {
 }
 
 function autoShoot() {
-  if (!game.active || game.player.shootCooldown > 0) return; let closestBot = null, minDist = Infinity;
+  if (!game.active || game.player.shootCooldown > 0) return; 
+  let closestBot = null, minDist = Infinity;
   for (let b of game.bots) { let d = Math.hypot(b.x - game.player.x, b.y - game.player.y); if (d < minDist) { minDist = d; closestBot = b; } }
+  
   if (closestBot && minDist <= 800) { let angle = Math.atan2(closestBot.y - game.player.y, closestBot.x - game.player.x); shootBullet(game.player.x + 30, game.player.y + 30, angle, 'player'); }
   else {
     let closestBox = null; minDist = Infinity;
@@ -228,8 +308,7 @@ function loop() {
     for (let j = 0; j < game.bots.length; j++) {
         if (i === j) continue;
         let other = game.bots[j];
-        let distX = b.x - other.x;
-        let distY = b.y - other.y;
+        let distX = b.x - other.x; let distY = b.y - other.y;
         let dist = Math.hypot(distX, distY);
         if (dist < 60 && dist > 0) {
             separationX += (distX / dist) * (60 - dist) * 0.1;
@@ -237,16 +316,10 @@ function loop() {
         }
     }
 
-    if (minDist > 50) { 
-      b.x += (dx / minDist) * b.speed + separationX; 
-      b.y += (dy / minDist) * b.speed + separationY; 
-    } else {
-      b.x += separationX;
-      b.y += separationY;
-    }
+    if (minDist > 50) { b.x += (dx / minDist) * b.speed + separationX; b.y += (dy / minDist) * b.speed + separationY; } 
+    else { b.x += separationX; b.y += separationY; }
     
-    b.x = Math.max(30, Math.min(2970, b.x));
-    b.y = Math.max(30, Math.min(2970, b.y));
+    b.x = Math.max(30, Math.min(2970, b.x)); b.y = Math.max(30, Math.min(2970, b.y));
 
     let botEl = document.getElementById('bot-' + b.id);
     if(botEl) {
@@ -256,10 +329,7 @@ function loop() {
     }
     
     b.shootTimer--; 
-    if (b.shootTimer <= 0 && minDist < 600) { 
-      b.shootTimer = 80 + Math.random() * 50; 
-      shootBullet(b.x + 28, b.y + 28, Math.atan2(dy, dx), 'bot'); 
-    }
+    if (b.shootTimer <= 0 && minDist < 600) { b.shootTimer = 80 + Math.random() * 50; shootBullet(b.x + 28, b.y + 28, Math.atan2(dy, dx), 'bot'); }
   }
   
   for (let c of game.clouds) { let dist = Math.hypot(game.player.x - c.x, game.player.y - c.y); if (dist < c.r) game.player.hp -= 4; }
@@ -284,10 +354,7 @@ function loop() {
       }
       if (!hit) { for (let k = game.boxes.length - 1; k >= 0; k--) { let box = game.boxes[k]; if (Math.hypot(b.x - (box.x+28), b.y - (box.y+28)) < 35) { box.hp -= b.dmg; if (box.hp <= 0) { document.getElementById('box-' + box.id).remove(); dropCube(box.x, box.y); game.boxes.splice(k, 1); } hit = true; break; } } }
     } else {
-      if (distFromStart > 40 && Math.hypot(b.x - (game.player.x+28), b.y - (game.player.y+28)) < 35) { 
-        game.player.hp -= b.dmg; 
-        hit = true; 
-      }
+      if (distFromStart > 40 && Math.hypot(b.x - (game.player.x+28), b.y - (game.player.y+28)) < 35) { game.player.hp -= b.dmg; hit = true; }
     }
     if (hit || b.life <= 0) { b.el.remove(); game.bullets.splice(i, 1); }
   }
@@ -297,12 +364,17 @@ function loop() {
   if (game.player.hp <= 0) { game.player.hp = 0; endGame('lose'); return; }
   document.getElementById('hpText').innerText = Math.floor(game.player.hp); document.getElementById('hpFill').style.width = (game.player.hp / game.player.maxHp * 100) + '%';
   if (game.player.hp / game.player.maxHp < 0.3) document.getElementById('hpFill').style.background = '#ff3333'; else document.getElementById('hpFill').style.background = '#00ff88';
+  
   animFrame = requestAnimationFrame(loop);
 }
 
 function endGame(result) {
   game.active = false; cancelAnimationFrame(animFrame); clearInterval(timerInterval); clearInterval(cloudInterval); moveJoystick.active = false; moveJoystick.dx = 0; moveJoystick.dy = 0;
-  let title = result === 'win' ? '🏆 VITÓRIA!' : (result === 'draw' ? '🤝 EMPATE' : '💀 DERROTA'); let msg = result === 'win' ? '+1000 Troféus' : 'Sem troféus desta vez.'; if (result === 'win') currentPlayerData.trophies += 1000;
+  let title = result === 'win' ? '🏆 VITÓRIA!' : (result === 'draw' ? '🤝 EMPATE' : '💀 DERROTA'); 
+  let msg = result === 'win' ? '+1000 Troféus' : 'Sem troféus desta vez.'; 
+  if (result === 'win') currentPlayerData.trophies += 1000;
+  
   saveData(); document.getElementById('endTitle').innerText = title;
-  document.getElementById('endStats').innerHTML = `<div style="color:#00ff88; font-size:18px;">Bots Eliminados: ${game.kills}/9</div><div style="color:#ffcc00; font-size:16px; margin-top:5px;">${msg}</div>`; openModal('endModal');
-    }
+  document.getElementById('endStats').innerHTML = `<div style="color:#00ff88; font-size:18px;">Bots Eliminados: ${game.kills}/9</div><div style="color:#ffcc00; font-size:16px; margin-top:5px;">${msg}</div>`; 
+  openModal('endModal');
+}
