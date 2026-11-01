@@ -67,7 +67,6 @@ function startSolo() {
   let pEl = document.createElement('div'); pEl.className = 'player'; pEl.id = 'playerEl'; pEl.innerText = bData.emoji;
   pEl.style.left = game.player.x + 'px'; pEl.style.top = game.player.y + 'px'; document.getElementById('arena').appendChild(pEl);
   
-  // Criação dos 9 bots com barra de vida
   for (let i = 0; i < 9; i++) {
     let ang = (i / 9) * Math.PI * 2;
     let bx = 1500 + Math.cos(ang) * 400;
@@ -77,10 +76,7 @@ function startSolo() {
     
     let el = document.createElement('div'); el.className = 'bot'; el.id = 'bot-' + i; el.innerText = '🤖';
     el.style.left = bx + 'px'; el.style.top = by + 'px'; 
-    
-    // Adiciona a barrinha de vida em cima do bot
-    el.innerHTML += `<div id="hp-bot-${i}" style="position:absolute; top:-15px; left:0; width:100%; height:8px; background:#333; border-radius:4px; overflow:hidden;"><div id="hp-fill-bot-${i}" style="width:100%; height:100%; background:#00ff88;"></div></div>`;
-    
+    el.innerHTML += `<div style="position:absolute; top:-15px; left:0; width:100%; height:8px; background:#333; border-radius:4px; overflow:hidden;"><div id="hp-fill-bot-${i}" style="width:100%; height:100%; background:#00ff88;"></div></div>`;
     document.getElementById('arena').appendChild(el);
   }
   
@@ -124,9 +120,7 @@ function autoShoot() {
 
 function shootBullet(x, y, angle, owner) {
   if (owner === 'player') game.player.shootCooldown = 20;
-  let speed = 15; 
-  let dmg = 450;
-  
+  let speed = 15; let dmg = 450;
   let b = { x: x, y: y, vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed, owner: owner, dmg: dmg, life: 60, startX: x, startY: y };
   game.bullets.push(b); let el = document.createElement('div'); el.className = 'bullet'; el.style.left = (x - 9) + 'px'; el.style.top = (y - 9) + 'px';
   if (owner === 'bot') el.style.background = '#ff4444'; document.getElementById('arena').appendChild(el); b.el = el;
@@ -135,10 +129,7 @@ function shootBullet(x, y, angle, owner) {
 function loop() {
   if (!game.active) return;
   
-  if (moveJoystick.active) { 
-    game.player.x += moveJoystick.dx * 0.08; 
-    game.player.y += moveJoystick.dy * 0.08; 
-  }
+  if (moveJoystick.active) { game.player.x += moveJoystick.dx * 0.08; game.player.y += moveJoystick.dy * 0.08; }
   game.player.x = Math.max(30, Math.min(2970, game.player.x));
   game.player.y = Math.max(30, Math.min(2970, game.player.y));
 
@@ -149,16 +140,32 @@ function loop() {
   const camX = Math.max(0, Math.min(3000 - viewW, game.player.x - viewW / 2)); const camY = Math.max(0, Math.min(3000 - viewH, game.player.y - viewH / 2));
   document.getElementById('camera').style.transform = `translate(${-camX}px, ${-camY}px)`;
   
-  for (let b of game.bots) {
-    let targetX = game.player.x; 
-    let targetY = game.player.y; 
-    let dx = targetX - b.x; 
-    let dy = targetY - b.y;
+  for (let i = 0; i < game.bots.length; i++) {
+    let b = game.bots[i];
+    let targetX = game.player.x; let targetY = game.player.y; 
+    let dx = targetX - b.x; let dy = targetY - b.y;
     let minDist = Math.hypot(dx, dy);
     
+    // Distância mínima entre bots para não se empilharem (Separamento)
+    let separationX = 0; let separationY = 0;
+    for (let j = 0; j < game.bots.length; j++) {
+        if (i === j) continue;
+        let other = game.bots[j];
+        let distX = b.x - other.x;
+        let distY = b.y - other.y;
+        let dist = Math.hypot(distX, distY);
+        if (dist < 60 && dist > 0) {
+            separationX += (distX / dist) * (60 - dist) * 0.1;
+            separationY += (distY / dist) * (60 - dist) * 0.1;
+        }
+    }
+
     if (minDist > 50) { 
-      b.x += (dx / minDist) * b.speed; 
-      b.y += (dy / minDist) * b.speed; 
+      b.x += (dx / minDist) * b.speed + separationX; 
+      b.y += (dy / minDist) * b.speed + separationY; 
+    } else {
+      b.x += separationX;
+      b.y += separationY;
     }
     
     b.x = Math.max(30, Math.min(2970, b.x));
@@ -166,8 +173,7 @@ function loop() {
 
     let botEl = document.getElementById('bot-' + b.id);
     if(botEl) {
-        botEl.style.left = b.x + 'px'; 
-        botEl.style.top = b.y + 'px';
+        botEl.style.left = b.x + 'px'; botEl.style.top = b.y + 'px';
         let fill = document.getElementById('hp-fill-bot-' + b.id);
         if(fill) fill.style.width = (b.hp / b.maxHp * 100) + '%';
     }
@@ -179,7 +185,6 @@ function loop() {
     }
   }
   
-  // Nuvem Tóxica SÓ afeta o jogador
   for (let c of game.clouds) { let dist = Math.hypot(game.player.x - c.x, game.player.y - c.y); if (dist < c.r) game.player.hp -= 4; }
   
   for (let i = game.bullets.length - 1; i >= 0; i--) {
