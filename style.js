@@ -1,17 +1,10 @@
 let game = { active: false, player: {}, bots: [], bullets: [], walls: [], bushes: [], clouds: [], boxes: [], cubes: [], timeLeft: 300, kills: 0 };
 let moveTarget = null, animFrame = null, timerInterval = null, cloudInterval = null;
 
-// ================= FUNÇÕES DE UI =================
 function openModal(id) { document.getElementById(id).classList.add('active'); }
 function closeModal(id) { document.getElementById(id).classList.remove('active'); }
 function showToast(msg) { const t = document.getElementById('toast'); t.textContent = msg; t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 2000); }
-function returnToMenu() { 
-  document.getElementById('menuScreen').classList.remove('hide'); 
-  document.getElementById('gameScreen').classList.remove('active'); 
-  game.active = false; 
-  if(animFrame) cancelAnimationFrame(animFrame); 
-  if(timerInterval) clearInterval(timerInterval); 
-}
+function returnToMenu() { document.getElementById('menuScreen').classList.remove('hide'); document.getElementById('gameScreen').classList.remove('active'); game.active = false; if(animFrame) cancelAnimationFrame(animFrame); if(timerInterval) clearInterval(timerInterval); }
 
 function updateUI() {
   if (!document.getElementById('menuTrophies')) return;
@@ -23,24 +16,20 @@ function updateUI() {
 }
 updateUI();
 
-// ================= LÓGICA DE INÍCIO DE JOGO =================
 function startSolo() {
   closeModal('eventsModal');
   document.getElementById('menuScreen').classList.add('hide');
   document.getElementById('gameScreen').classList.add('active');
   
-  game.active = true; 
-  game.bots = []; game.bullets = []; game.clouds = []; game.walls = []; game.bushes = []; game.boxes = []; game.cubes = [];
+  game.active = true; game.bots = []; game.bullets = []; game.clouds = []; game.walls = []; game.bushes = []; game.boxes = []; game.cubes = [];
   game.kills = 0; game.timeLeft = 300; 
   
   const bData = BRAWLER_DATA[currentPlayerData.selectedBrawler];
-  game.player = { x: 1250, y: 1250, hp: bData.hp, maxHp: bData.hp, brawler: currentPlayerData.selectedBrawler, shootCooldown: 0, angle: 0 };
+  game.player = { x: 1500, y: 1500, hp: bData.hp, maxHp: bData.hp, brawler: currentPlayerData.selectedBrawler, shootCooldown: 0, angle: 0 };
   
   const gameScreen = document.getElementById('gameScreen');
   gameScreen.innerHTML = `
-    <div id="camera">
-      <div id="arena"></div>
-    </div>
+    <div id="camera"><div id="arena"></div></div>
     <div class="hp-bar-container"><div class="hp-text" id="hpText">${bData.hp}</div><div class="hp-bar-bg"><div class="hp-bar-fill" id="hpFill"></div></div></div>
     <div class="kill-counter">Bots: <span id="killCount">0</span>/9</div>
     <div class="timer-box" id="timerDisplay">05:00</div>
@@ -50,16 +39,16 @@ function startSolo() {
   gameScreen.style.display = 'block';
   gameScreen.classList.add('active');
   
-  for (let i = 0; i < 15; i++) {
-    let x = Math.random() * 2500, y = Math.random() * 2500, w = 150, h = 150;
-    if (Math.hypot(x - 1250, y - 1250) > 400) {
+  for (let i = 0; i < 20; i++) {
+    let x = Math.random() * 3000, y = Math.random() * 3000, w = 150, h = 150;
+    if (Math.hypot(x - 1500, y - 1500) > 400) {
       game.walls.push({x,y,w,h});
       let el = document.createElement('div'); el.className = 'wall'; el.style.cssText = `left:${x}px;top:${y}px;width:${w}px;height:${h}px`;
       document.getElementById('arena').appendChild(el);
     }
   }
-  for (let i = 0; i < 20; i++) {
-    let x = Math.random() * 2500, y = Math.random() * 2500, r = 60;
+  for (let i = 0; i < 25; i++) {
+    let x = Math.random() * 3000, y = Math.random() * 3000, r = 60;
     game.bushes.push({x,y,r});
     let el = document.createElement('div'); el.className = 'bush'; el.style.cssText = `left:${x-r}px;top:${y-r}px;width:${r*2}px;height:${r*2}px`;
     document.getElementById('arena').appendChild(el);
@@ -70,8 +59,8 @@ function startSolo() {
   document.getElementById('arena').appendChild(pEl);
   
   for (let i = 0; i < 9; i++) {
-    let bx = 100 + Math.random() * 2300, by = 100 + Math.random() * 2300;
-    if (Math.hypot(bx - 1250, by - 1250) < 500) { bx += 600; by += 600; }
+    let bx = 100 + Math.random() * 2800, by = 100 + Math.random() * 2800;
+    if (Math.hypot(bx - 1500, by - 1500) < 600) { bx += 700; by += 700; }
     let b = { id: i, x: bx, y: by, hp: 650, maxHp: 650, speed: 1.5, shootTimer: Math.random() * 60 };
     game.bots.push(b);
     let el = document.createElement('div'); el.className = 'bot'; el.id = 'bot-' + i; el.innerText = '🤖';
@@ -79,11 +68,8 @@ function startSolo() {
     document.getElementById('arena').appendChild(el);
   }
   
-  spawnBoxes();
-  setupTouchControls();
-  
-  if(animFrame) cancelAnimationFrame(animFrame);
-  loop();
+  spawnBoxes(); setupTouchControls();
+  if(animFrame) cancelAnimationFrame(animFrame); loop();
   
   if(timerInterval) clearInterval(timerInterval);
   timerInterval = setInterval(() => {
@@ -99,31 +85,26 @@ function startSolo() {
 
 function spawnBoxes() {
   for (let i = 0; i < 6; i++) {
-    let bx = 200 + Math.random() * 2000;
-    let by = 200 + Math.random() * 2000;
+    let bx = 200 + Math.random() * 2600, by = 200 + Math.random() * 2600;
     game.boxes.push({ id: i, x: bx, y: by, hp: 1000, maxHp: 1000 });
-    let el = document.createElement('div');
-    el.className = 'box'; el.id = 'box-' + i;
+    let el = document.createElement('div'); el.className = 'box'; el.id = 'box-' + i;
     el.style.left = bx + 'px'; el.style.top = by + 'px';
     document.getElementById('arena').appendChild(el);
   }
 }
 
 function dropCube(x, y) {
-  let cube = { x: x, y: y };
-  game.cubes.push(cube);
-  let el = document.createElement('div');
-  el.className = 'cube'; el.style.left = x + 'px'; el.style.top = y + 'px';
+  game.cubes.push({ x: x, y: y });
+  let el = document.createElement('div'); el.className = 'cube'; el.style.left = x + 'px'; el.style.top = y + 'px';
   el.id = 'cube-' + game.cubes.length;
   document.getElementById('arena').appendChild(el);
 }
 
 function spawnCloud() {
-  let cx = Math.random() * 2500, cy = Math.random() * 2500;
+  let cx = Math.random() * 3000, cy = Math.random() * 3000;
   let r = 150 + Math.random() * 100;
   game.clouds.push({ x: cx, y: cy, r: r });
-  let el = document.createElement('div');
-  el.className = 'cloud';
+  let el = document.createElement('div'); el.className = 'cloud';
   el.style.left = (cx - r) + 'px'; el.style.top = (cy - r) + 'px';
   el.style.width = (r * 2) + 'px'; el.style.height = (r * 2) + 'px';
   document.getElementById('arena').appendChild(el);
@@ -131,7 +112,6 @@ function spawnCloud() {
 
 function setupTouchControls() {
   const zone = document.getElementById('joystickZone');
-  
   const handleMove = (clientX, clientY) => {
     if (!game.active) return;
     const camX = game.player.x - window.innerWidth / 2;
@@ -151,56 +131,52 @@ function setupTouchControls() {
 
 function autoShoot() {
   if (!game.active || game.player.shootCooldown > 0) return;
-  
-  let closestBot = null;
-  let minDist = Infinity;
+  let closestBot = null, minDist = Infinity;
   
   for (let b of game.bots) {
     let d = Math.hypot(b.x - game.player.x, b.y - game.player.y);
     if (d < minDist) { minDist = d; closestBot = b; }
   }
   
-  if (!closestBot || minDist > 600) {
+  if (closestBot && minDist <= 800) {
+    let angle = Math.atan2(closestBot.y - game.player.y, closestBot.x - game.player.x);
+    shootBullet(game.player.x + 30, game.player.y + 30, angle, 'player');
+  } else {
     let closestBox = null; minDist = Infinity;
     for (let bx of game.boxes) {
       let d = Math.hypot(bx.x - game.player.x, bx.y - game.player.y);
       if (d < minDist) { minDist = d; closestBox = bx; }
     }
-    if (closestBox && minDist < 400) {
+    if (closestBox && minDist < 500) {
       let angle = Math.atan2(closestBox.y - game.player.y, closestBox.x - game.player.x);
-      shootBullet(game.player.x + 25, game.player.y + 25, angle, 'player');
+      shootBullet(game.player.x + 30, game.player.y + 30, angle, 'player');
     }
-    return;
   }
-  
-  let angle = Math.atan2(closestBot.y - game.player.y, closestBot.x - game.player.x);
-  shootBullet(game.player.x + 25, game.player.y + 25, angle, 'player');
 }
 
 function shootBullet(x, y, angle, owner) {
   if (owner === 'player') game.player.shootCooldown = 20;
-  const speed = 15;
+  let speed = 15;
   let dmg = owner === 'player' ? BRAWLER_DATA[game.player.brawler].dmg : 550;
   let b = { x: x, y: y, vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed, owner: owner, dmg: dmg, life: 60 };
   game.bullets.push(b);
-  let el = document.createElement('div');
-  el.className = 'bullet';
+  let el = document.createElement('div'); el.className = 'bullet';
   el.style.left = (x - 9) + 'px'; el.style.top = (y - 9) + 'px';
   if (owner === 'bot') el.style.background = '#ff4444';
   document.getElementById('arena').appendChild(el);
   b.el = el;
 }
+
 function loop() {
   if (!game.active) return;
   
-  // Movimento Player
   if (moveTarget) {
     let dx = moveTarget.x - game.player.x;
     let dy = moveTarget.y - game.player.y;
     let dist = Math.hypot(dx, dy);
     if (dist > 15) {
-      game.player.x += (dx / dist) * 4.5;
-      game.player.y += (dy / dist) * 4.5;
+      game.player.x += (dx / dist) * 5;
+      game.player.y += (dy / dist) * 5;
       game.player.angle = Math.atan2(dy, dx);
     } else { moveTarget = null; }
   }
@@ -209,12 +185,12 @@ function loop() {
   document.getElementById('playerEl').style.left = game.player.x + 'px';
   document.getElementById('playerEl').style.top = game.player.y + 'px';
   
-  // CÂMERA SEGUE O PLAYER
-  const camX = Math.max(0, Math.min(2500 - window.innerWidth, game.player.x - window.innerWidth / 2));
-  const camY = Math.max(0, Math.min(2500 - window.innerHeight, game.player.y - window.innerHeight / 2));
+  const viewW = window.innerWidth;
+  const viewH = window.innerHeight;
+  const camX = Math.max(0, Math.min(3000 - viewW, game.player.x - viewW / 2));
+  const camY = Math.max(0, Math.min(3000 - viewH, game.player.y - viewH / 2));
   document.getElementById('camera').style.transform = `translate(${-camX}px, ${-camY}px)`;
   
-  // Bots
   for (let b of game.bots) {
     let dx = game.player.x - b.x;
     let dy = game.player.y - b.y;
@@ -227,24 +203,21 @@ function loop() {
     document.getElementById('bot-' + b.id).style.top = b.y + 'px';
     
     b.shootTimer--;
-    if (b.shootTimer <= 0 && dist < 500) {
+    if (b.shootTimer <= 0 && dist < 600) {
       b.shootTimer = 80 + Math.random() * 50;
       shootBullet(b.x + 28, b.y + 28, Math.atan2(dy, dx), 'bot');
     }
     if (dist < 45) {
       game.player.hp -= 150;
-      b.x -= (dx / dist) * 15;
-      b.y -= (dy / dist) * 15;
+      b.x -= (dx / dist) * 15; b.y -= (dy / dist) * 15;
     }
   }
   
-  // Nuvem Tóxica
   for (let c of game.clouds) {
     let dist = Math.hypot(game.player.x - c.x, game.player.y - c.y);
     if (dist < c.r) game.player.hp -= 4;
   }
   
-  // Balas
   for (let i = game.bullets.length - 1; i >= 0; i--) {
     let b = game.bullets[i];
     b.x += b.vx; b.y += b.vy; b.life--;
@@ -258,8 +231,7 @@ function loop() {
           bot.hp -= b.dmg;
           if (bot.hp <= 0) {
             document.getElementById('bot-' + bot.id).remove();
-            game.bots.splice(j, 1);
-            game.kills++;
+            game.bots.splice(j, 1); game.kills++;
             currentPlayerData.gems += 10;
             document.getElementById('killCount').innerText = game.kills;
             if (game.kills >= 9) endGame('win');
@@ -274,8 +246,7 @@ function loop() {
             box.hp -= b.dmg;
             if (box.hp <= 0) {
               document.getElementById('box-' + box.id).remove();
-              dropCube(box.x, box.y);
-              game.boxes.splice(k, 1);
+              dropCube(box.x, box.y); game.boxes.splice(k, 1);
             }
             hit = true; break;
           }
@@ -283,25 +254,21 @@ function loop() {
       }
     } else {
       if (Math.hypot(b.x - (game.player.x+28), b.y - (game.player.y+28)) < 35) {
-        game.player.hp -= b.dmg;
-        hit = true;
+        game.player.hp -= b.dmg; hit = true;
       }
     }
     if (hit || b.life <= 0) { b.el.remove(); game.bullets.splice(i, 1); }
   }
   
-  // Cubos de vida
   for (let i = game.cubes.length - 1; i >= 0; i--) {
     let c = game.cubes[i];
     if (Math.hypot(c.x - game.player.x, c.y - game.player.y) < 45) {
       game.player.hp = Math.min(game.player.maxHp, game.player.hp + 500);
-      let cubeEl = document.getElementById('cube-' + (i+1));
-      if(cubeEl) cubeEl.remove();
+      let cubeEl = document.getElementById('cube-' + (i+1)); if(cubeEl) cubeEl.remove();
       game.cubes.splice(i, 1);
     }
   }
   
-  // UI de Vida
   if (game.player.hp <= 0) { game.player.hp = 0; endGame('lose'); return; }
   document.getElementById('hpText').innerText = Math.floor(game.player.hp);
   document.getElementById('hpFill').style.width = (game.player.hp / game.player.maxHp * 100) + '%';
@@ -311,22 +278,12 @@ function loop() {
   animFrame = requestAnimationFrame(loop);
 }
 
-// ================= FIM DE JOGO =================
 function endGame(result) {
   game.active = false;
-  cancelAnimationFrame(animFrame);
-  clearInterval(timerInterval);
-  clearInterval(cloudInterval);
-  
+  cancelAnimationFrame(animFrame); clearInterval(timerInterval); clearInterval(cloudInterval);
   let title = result === 'win' ? '🏆 VITÓRIA!' : (result === 'draw' ? '🤝 EMPATE' : '💀 DERROTA');
-  let msg = '';
-  
-  if (result === 'win') {
-    currentPlayerData.trophies += 1000;
-    msg = '+1000 Troféus';
-  } else {
-    msg = 'Sem troféus desta vez.';
-  }
+  let msg = result === 'win' ? '+1000 Troféus' : 'Sem troféus desta vez.';
+  if (result === 'win') currentPlayerData.trophies += 1000;
   
   localStorage.setItem('combateRoyale', JSON.stringify(currentPlayerData));
   updateUI();
@@ -339,7 +296,6 @@ function endGame(result) {
   openModal('endModal');
 }
 
-// ================= AUTENTICAÇÃO BÁSICA =================
 function toggleAuth() {
   const title = document.getElementById('authTitle');
   if (title.innerText === 'Entrar') {
@@ -356,4 +312,4 @@ function toggleAuth() {
 function handleAuth() {
   closeModal('authModal');
   showToast('Login efetuado!');
-}
+  }
