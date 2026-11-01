@@ -34,42 +34,45 @@ function startSolo() {
   game.kills = 0; game.timeLeft = 300; 
   
   const bData = BRAWLER_DATA[currentPlayerData.selectedBrawler];
-  game.player = { x: 1000, y: 1000, hp: bData.hp, maxHp: bData.hp, brawler: currentPlayerData.selectedBrawler, shootCooldown: 0, angle: 0 };
+  game.player = { x: 1250, y: 1250, hp: bData.hp, maxHp: bData.hp, brawler: currentPlayerData.selectedBrawler, shootCooldown: 0, angle: 0 };
   
-  document.getElementById('arena').innerHTML = '';
-  document.getElementById('hpText').innerText = bData.hp; 
-  document.getElementById('hpFill').style.width = '100%'; 
-  document.getElementById('hpFill').style.background = '#00ff88';
-  document.getElementById('killCount').innerText = '0';
+  const gameScreen = document.getElementById('gameScreen');
+  gameScreen.innerHTML = `
+    <div id="camera">
+      <div id="arena"></div>
+    </div>
+    <div class="hp-bar-container"><div class="hp-text" id="hpText">${bData.hp}</div><div class="hp-bar-bg"><div class="hp-bar-fill" id="hpFill"></div></div></div>
+    <div class="kill-counter">Bots: <span id="killCount">0</span>/9</div>
+    <div class="timer-box" id="timerDisplay">05:00</div>
+    <div id="joystickZone"></div>
+    <button id="fireBtn">🔥</button>
+  `;
+  gameScreen.style.display = 'block';
+  gameScreen.classList.add('active');
   
-  // Paredes
-  for (let i = 0; i < 12; i++) {
-    let x = Math.random() * 2000, y = Math.random() * 2000, w = 100, h = 100;
-    if (Math.hypot(x - 1000, y - 1000) > 300) {
+  for (let i = 0; i < 15; i++) {
+    let x = Math.random() * 2500, y = Math.random() * 2500, w = 150, h = 150;
+    if (Math.hypot(x - 1250, y - 1250) > 400) {
       game.walls.push({x,y,w,h});
       let el = document.createElement('div'); el.className = 'wall'; el.style.cssText = `left:${x}px;top:${y}px;width:${w}px;height:${h}px`;
       document.getElementById('arena').appendChild(el);
     }
   }
-  
-  // Arbustos
-  for (let i = 0; i < 15; i++) {
-    let x = Math.random() * 2000, y = Math.random() * 2000, r = 50;
+  for (let i = 0; i < 20; i++) {
+    let x = Math.random() * 2500, y = Math.random() * 2500, r = 60;
     game.bushes.push({x,y,r});
     let el = document.createElement('div'); el.className = 'bush'; el.style.cssText = `left:${x-r}px;top:${y-r}px;width:${r*2}px;height:${r*2}px`;
     document.getElementById('arena').appendChild(el);
   }
   
-  // Player
   let pEl = document.createElement('div'); pEl.className = 'player'; pEl.id = 'playerEl'; pEl.innerText = bData.emoji;
   pEl.style.left = game.player.x + 'px'; pEl.style.top = game.player.y + 'px';
   document.getElementById('arena').appendChild(pEl);
   
-  // Bots
   for (let i = 0; i < 9; i++) {
-    let bx = 100 + Math.random() * 1800, by = 100 + Math.random() * 1800;
-    if (Math.hypot(bx - 1000, by - 1000) < 400) { bx += 500; }
-    let b = { id: i, x: bx, y: by, hp: 650, maxHp: 650, speed: 1.2, shootTimer: Math.random() * 60 };
+    let bx = 100 + Math.random() * 2300, by = 100 + Math.random() * 2300;
+    if (Math.hypot(bx - 1250, by - 1250) < 500) { bx += 600; by += 600; }
+    let b = { id: i, x: bx, y: by, hp: 650, maxHp: 650, speed: 1.5, shootTimer: Math.random() * 60 };
     game.bots.push(b);
     let el = document.createElement('div'); el.className = 'bot'; el.id = 'bot-' + i; el.innerText = '🤖';
     el.style.left = bx + 'px'; el.style.top = by + 'px';
@@ -91,21 +94,17 @@ function startSolo() {
   }, 1000);
   
   if(cloudInterval) clearInterval(cloudInterval);
-  cloudInterval = setInterval(() => { if(game.active) spawnCloud(); }, 3000);
+  cloudInterval = setInterval(() => { if(game.active) spawnCloud(); }, 4000);
 }
 
-// ================= CAIXAS, CUBOS E NUVEM =================
 function spawnBoxes() {
-  for (let i = 0; i < 5; i++) {
-    let bx = 200 + Math.random() * 1600;
-    let by = 200 + Math.random() * 1600;
+  for (let i = 0; i < 6; i++) {
+    let bx = 200 + Math.random() * 2000;
+    let by = 200 + Math.random() * 2000;
     game.boxes.push({ id: i, x: bx, y: by, hp: 1000, maxHp: 1000 });
-    
     let el = document.createElement('div');
-    el.className = 'box';
-    el.id = 'box-' + i;
-    el.style.left = bx + 'px';
-    el.style.top = by + 'px';
+    el.className = 'box'; el.id = 'box-' + i;
+    el.style.left = bx + 'px'; el.style.top = by + 'px';
     document.getElementById('arena').appendChild(el);
   }
 }
@@ -114,93 +113,94 @@ function dropCube(x, y) {
   let cube = { x: x, y: y };
   game.cubes.push(cube);
   let el = document.createElement('div');
-  el.className = 'cube';
-  el.style.left = x + 'px';
-  el.style.top = y + 'px';
+  el.className = 'cube'; el.style.left = x + 'px'; el.style.top = y + 'px';
   el.id = 'cube-' + game.cubes.length;
   document.getElementById('arena').appendChild(el);
 }
 
 function spawnCloud() {
-  let cx = Math.random() * 2000;
-  let cy = Math.random() * 2000;
+  let cx = Math.random() * 2500, cy = Math.random() * 2500;
   let r = 150 + Math.random() * 100;
-  let cloud = { x: cx, y: cy, r: r };
-  game.clouds.push(cloud);
-  
+  game.clouds.push({ x: cx, y: cy, r: r });
   let el = document.createElement('div');
   el.className = 'cloud';
-  el.style.left = (cx - r) + 'px';
-  el.style.top = (cy - r) + 'px';
-  el.style.width = (r * 2) + 'px';
-  el.style.height = (r * 2) + 'px';
-  el.id = 'cloud-' + game.clouds.length;
+  el.style.left = (cx - r) + 'px'; el.style.top = (cy - r) + 'px';
+  el.style.width = (r * 2) + 'px'; el.style.height = (r * 2) + 'px';
   document.getElementById('arena').appendChild(el);
-  }
+}
+
 function setupTouchControls() {
   const zone = document.getElementById('joystickZone');
   
   const handleMove = (clientX, clientY) => {
     if (!game.active) return;
-    const rect = document.getElementById('arena').getBoundingClientRect();
-    let tx = clientX - rect.left;
-    let ty = clientY - rect.top;
-    moveTarget = { x: tx, y: ty };
-    
-    let dist = Math.hypot(tx - (game.player.x + 20), ty - (game.player.y + 20));
-    if (dist > 60) {
-      shootBullet(game.player.x + 20, game.player.y + 20, Math.atan2(ty - game.player.y, tx - game.player.x), 'player');
-    }
+    const camX = game.player.x - window.innerWidth / 2;
+    const camY = game.player.y - window.innerHeight / 2;
+    moveTarget = { x: clientX + camX, y: clientY + camY };
   };
 
   zone.addEventListener('touchstart', e => { e.preventDefault(); handleMove(e.touches[0].clientX, e.touches[0].clientY); }, {passive: false});
   zone.addEventListener('touchmove', e => { e.preventDefault(); handleMove(e.touches[0].clientX, e.touches[0].clientY); }, {passive: false});
-  
   zone.addEventListener('mousedown', e => handleMove(e.clientX, e.clientY));
   zone.addEventListener('mousemove', e => { if(e.buttons === 1) handleMove(e.clientX, e.clientY); });
   
   const fireBtn = document.getElementById('fireBtn');
-  fireBtn.addEventListener('touchstart', e => {
-    e.preventDefault();
-    if(game.active) shootBullet(game.player.x + 20, game.player.y + 20, game.player.angle || 0, 'player');
-  }, {passive: false});
-  fireBtn.addEventListener('mousedown', e => {
-    if(game.active) shootBullet(game.player.x + 20, game.player.y + 20, game.player.angle || 0, 'player');
-  });
+  fireBtn.addEventListener('touchstart', e => { e.preventDefault(); autoShoot(); }, {passive: false});
+  fireBtn.addEventListener('mousedown', e => { autoShoot(); });
 }
 
-// ================= TIROS =================
+function autoShoot() {
+  if (!game.active || game.player.shootCooldown > 0) return;
+  
+  let closestBot = null;
+  let minDist = Infinity;
+  
+  for (let b of game.bots) {
+    let d = Math.hypot(b.x - game.player.x, b.y - game.player.y);
+    if (d < minDist) { minDist = d; closestBot = b; }
+  }
+  
+  if (!closestBot || minDist > 600) {
+    let closestBox = null; minDist = Infinity;
+    for (let bx of game.boxes) {
+      let d = Math.hypot(bx.x - game.player.x, bx.y - game.player.y);
+      if (d < minDist) { minDist = d; closestBox = bx; }
+    }
+    if (closestBox && minDist < 400) {
+      let angle = Math.atan2(closestBox.y - game.player.y, closestBox.x - game.player.x);
+      shootBullet(game.player.x + 25, game.player.y + 25, angle, 'player');
+    }
+    return;
+  }
+  
+  let angle = Math.atan2(closestBot.y - game.player.y, closestBot.x - game.player.x);
+  shootBullet(game.player.x + 25, game.player.y + 25, angle, 'player');
+}
+
 function shootBullet(x, y, angle, owner) {
-  if (owner === 'player' && game.player.shootCooldown > 0) return;
-  if (owner === 'player') game.player.shootCooldown = 15;
-  
-  const speed = 12;
+  if (owner === 'player') game.player.shootCooldown = 20;
+  const speed = 15;
   let dmg = owner === 'player' ? BRAWLER_DATA[game.player.brawler].dmg : 550;
-  
   let b = { x: x, y: y, vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed, owner: owner, dmg: dmg, life: 60 };
   game.bullets.push(b);
-  
   let el = document.createElement('div');
   el.className = 'bullet';
-  el.style.left = (x - 7) + 'px';
-  el.style.top = (y - 7) + 'px';
+  el.style.left = (x - 9) + 'px'; el.style.top = (y - 9) + 'px';
   if (owner === 'bot') el.style.background = '#ff4444';
   document.getElementById('arena').appendChild(el);
   b.el = el;
 }
-
-// ================= LOOP DO JOGO =================
 function loop() {
   if (!game.active) return;
   
   // Movimento Player
   if (moveTarget) {
-    let dx = moveTarget.x - (game.player.x + 20);
-    let dy = moveTarget.y - (game.player.y + 20);
+    let dx = moveTarget.x - game.player.x;
+    let dy = moveTarget.y - game.player.y;
     let dist = Math.hypot(dx, dy);
-    if (dist > 10) {
-      game.player.x += (dx / dist) * 4;
-      game.player.y += (dy / dist) * 4;
+    if (dist > 15) {
+      game.player.x += (dx / dist) * 4.5;
+      game.player.y += (dy / dist) * 4.5;
       game.player.angle = Math.atan2(dy, dx);
     } else { moveTarget = null; }
   }
@@ -209,54 +209,52 @@ function loop() {
   document.getElementById('playerEl').style.left = game.player.x + 'px';
   document.getElementById('playerEl').style.top = game.player.y + 'px';
   
+  // CÂMERA SEGUE O PLAYER
+  const camX = Math.max(0, Math.min(2500 - window.innerWidth, game.player.x - window.innerWidth / 2));
+  const camY = Math.max(0, Math.min(2500 - window.innerHeight, game.player.y - window.innerHeight / 2));
+  document.getElementById('camera').style.transform = `translate(${-camX}px, ${-camY}px)`;
+  
   // Bots
   for (let b of game.bots) {
     let dx = game.player.x - b.x;
     let dy = game.player.y - b.y;
     let dist = Math.hypot(dx, dy);
-    
-    if (dist > 40) {
+    if (dist > 50) {
       b.x += (dx / dist) * b.speed;
       b.y += (dy / dist) * b.speed;
     }
-    
     document.getElementById('bot-' + b.id).style.left = b.x + 'px';
     document.getElementById('bot-' + b.id).style.top = b.y + 'px';
     
     b.shootTimer--;
     if (b.shootTimer <= 0 && dist < 500) {
-      b.shootTimer = 60 + Math.random() * 40;
-      shootBullet(b.x + 20, b.y + 20, Math.atan2(dy, dx), 'bot');
+      b.shootTimer = 80 + Math.random() * 50;
+      shootBullet(b.x + 28, b.y + 28, Math.atan2(dy, dx), 'bot');
     }
-    
-    if (dist < 35) {
-      game.player.hp -= 200;
-      b.x -= (dx / dist) * 10;
-      b.y -= (dy / dist) * 10;
+    if (dist < 45) {
+      game.player.hp -= 150;
+      b.x -= (dx / dist) * 15;
+      b.y -= (dy / dist) * 15;
     }
   }
   
   // Nuvem Tóxica
   for (let c of game.clouds) {
     let dist = Math.hypot(game.player.x - c.x, game.player.y - c.y);
-    if (dist < c.r) {
-      game.player.hp -= 3;
-    }
+    if (dist < c.r) game.player.hp -= 4;
   }
   
   // Balas
   for (let i = game.bullets.length - 1; i >= 0; i--) {
     let b = game.bullets[i];
     b.x += b.vx; b.y += b.vy; b.life--;
-    b.el.style.left = (b.x - 7) + 'px';
-    b.el.style.top = (b.y - 7) + 'px';
+    b.el.style.left = (b.x - 9) + 'px'; b.el.style.top = (b.y - 9) + 'px';
     
     let hit = false;
-    
     if (b.owner === 'player') {
       for (let j = game.bots.length - 1; j >= 0; j--) {
         let bot = game.bots[j];
-        if (Math.hypot(b.x - (bot.x+20), b.y - (bot.y+20)) < 30) {
+        if (Math.hypot(b.x - (bot.x+28), b.y - (bot.y+28)) < 35) {
           bot.hp -= b.dmg;
           if (bot.hp <= 0) {
             document.getElementById('bot-' + bot.id).remove();
@@ -272,7 +270,7 @@ function loop() {
       if (!hit) {
         for (let k = game.boxes.length - 1; k >= 0; k--) {
           let box = game.boxes[k];
-          if (Math.hypot(b.x - (box.x+20), b.y - (box.y+20)) < 30) {
+          if (Math.hypot(b.x - (box.x+28), b.y - (box.y+28)) < 35) {
             box.hp -= b.dmg;
             if (box.hp <= 0) {
               document.getElementById('box-' + box.id).remove();
@@ -284,22 +282,18 @@ function loop() {
         }
       }
     } else {
-      if (Math.hypot(b.x - (game.player.x+20), b.y - (game.player.y+20)) < 30) {
+      if (Math.hypot(b.x - (game.player.x+28), b.y - (game.player.y+28)) < 35) {
         game.player.hp -= b.dmg;
         hit = true;
       }
     }
-    
-    if (hit || b.life <= 0) {
-      b.el.remove();
-      game.bullets.splice(i, 1);
-    }
+    if (hit || b.life <= 0) { b.el.remove(); game.bullets.splice(i, 1); }
   }
   
   // Cubos de vida
   for (let i = game.cubes.length - 1; i >= 0; i--) {
     let c = game.cubes[i];
-    if (Math.hypot(c.x - game.player.x, c.y - game.player.y) < 35) {
+    if (Math.hypot(c.x - game.player.x, c.y - game.player.y) < 45) {
       game.player.hp = Math.min(game.player.maxHp, game.player.hp + 500);
       let cubeEl = document.getElementById('cube-' + (i+1));
       if(cubeEl) cubeEl.remove();
