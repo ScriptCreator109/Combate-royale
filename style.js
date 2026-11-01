@@ -1,5 +1,6 @@
 let game = { active: false, player: {}, bots: [], bullets: [], walls: [], bushes: [], clouds: [], boxes: [], cubes: [], timeLeft: 300, kills: 0 };
-let moveTarget = null, animFrame = null, timerInterval = null, cloudInterval = null;
+let moveJoystick = { active: false, dx: 0, dy: 0, touchId: null };
+let animFrame = null, timerInterval = null, cloudInterval = null;
 
 function openModal(id) { document.getElementById(id).classList.add('active'); }
 function closeModal(id) { document.getElementById(id).classList.remove('active'); }
@@ -110,25 +111,84 @@ function spawnCloud() {
   document.getElementById('arena').appendChild(el);
 }
 
+// ================= CONTROLO DO JOYSTICK =================
 function setupTouchControls() {
   const zone = document.getElementById('joystickZone');
-  const handleMove = (clientX, clientY) => {
+  
+  const handleStart = (clientX, clientY, id) => {
     if (!game.active) return;
-    const camX = game.player.x - window.innerWidth / 2;
-    const camY = game.player.y - window.innerHeight / 2;
-    moveTarget = { x: clientX + camX, y: clientY + camY };
+    moveJoystick.active = true;
+    moveJoystick.touchId = id;
+    // O centro do joystick virtual é sempre o meio do ecrã
+    moveJoystick.startX = window.innerWidth / 2;
+    moveJoystick.startY = window.innerHeight / 2;
+    updateJoystick(clientX, clientY);
   };
 
-  zone.addEventListener('touchstart', e => { e.preventDefault(); handleMove(e.touches[0].clientX, e.touches[0].clientY); }, {passive: false});
-  zone.addEventListener('touchmove', e => { e.preventDefault(); handleMove(e.touches[0].clientX, e.touches[0].clientY); }, {passive: false});
-  zone.addEventListener('mousedown', e => handleMove(e.clientX, e.clientY));
-  zone.addEventListener('mousemove', e => { if(e.buttons === 1) handleMove(e.clientX, e.clientY); });
+  const updateJoystick = (clientX, clientY) => {
+    let dx = clientX - moveJoystick.startX;
+    let dy = clientY - moveJoystick.startY;
+    let dist = Math.hypot(dx, dy);
+    
+    // Se arrastar mais do que 50px, normaliza a força
+    if (dist > 50) {
+      dx = (dx / dist) * 50;
+      dy = (dy / dist) * 50;
+    }
+    
+    moveJoystick.dx = dx;
+    moveJoystick.dy = dy;
+    
+    // Calcula o ângulo para onde o boneco está a apontar/andar
+    if (dist > 10) {
+      game.player.angle = Math.atan2(dy, dx);
+    }
+  };
+
+  const handleEnd = () => {
+    moveJoystick.active = false;
+    moveJoystick.dx = 0;
+    moveJoystick.dy = 0;
+    moveJoystick.touchId = null;
+  };
+
+  // Eventos de Telemóvel
+  zone.addEventListener('touchstart', e => {
+    e.preventDefault();
+    for(let t of e.changedTouches) {
+      handleStart(t.clientX, t.clientY, t.identifier);
+    }
+  }, {passive: false});
+
+  zone.addEventListener('touchmove', e => {
+    e.preventDefault();
+    for(let t of e.changedTouches) {
+      if(t.identifier === moveJoystick.touchId) {
+        updateJoystick(t.clientX, t.clientY);
+      }
+    }
+  }, {passive: false});
+
+  zone.addEventListener('touchend', e => {
+    e.preventDefault();
+    for(let t of e.changedTouches) {
+      if(t.identifier === moveJoystick.touchId) handleEnd();
+    }
+  }, {passive: false});
+  zone.addEventListener('touchcancel', e => handleEnd(), {passive: false});
   
+  // Eventos de Rato (PC)
+  zone.addEventListener('mousedown', e => handleStart(e.clientX, e.clientY, 'mouse'));
+  zone.addEventListener('mousemove', e => { if(moveJoystick.active) updateJoystick(e.clientX, e.clientY); });
+  window.addEventListener('mouseup', () => { if(moveJoystick.active) handleEnd(); });
+  
+  // Botão de Tiro
   const fireBtn = document.getElementById('fireBtn');
   fireBtn.addEventListener('touchstart', e => { e.preventDefault(); autoShoot(); }, {passive: false});
   fireBtn.addEventListener('mousedown', e => { autoShoot(); });
 }
 
+// ================= TIRO AUTOMÁTICO =================
 function autoShoot() {
   if (!game.active || game.player.shootCooldown > 0) return;
   let closestBot = null, minDist = Infinity;
@@ -167,30 +227,30 @@ function shootBullet(x, y, angle, owner) {
   b.el = el;
 }
 
+// ================= LOOP DO JOGO =================
 function loop() {
   if (!game.active) return;
   
-  if (moveTarget) {
-    let dx = moveTarget.x - game.player.x;
-    let dy = moveTarget.y - game.player.y;
-    let dist = Math.hypot(dx, dy);
-    if (dist > 15) {
-      game.player.x += (dx / dist) * 5;
-      game.player.y += (dy / dist) * 5;
-      game.player.angle = Math.atan2(dy, dx);
-    } else { moveTarget = null; }
+  // MOVIMENTO BASEADO NO JOYSTICK
+  // moveJoystick.dx e dy variam de -50 a 50
+  // Multiplicamos por uma velocidade (ex: 0.08) para dar 4 de velocidade máxima
+  if (moveJoystick.active) {
+    game.player.x += moveJoystick.dx * 0.08;
+    game.player.y += moveJoystick.dy * 0.08;
   }
   
   if (game.player.shootCooldown > 0) game.player.shootCooldown--;
   document.getElementById('playerEl').style.left = game.player.x + 'px';
   document.getElementById('playerEl').style.top = game.player.y + 'px';
   
+  // CÂMARA
   const viewW = window.innerWidth;
   const viewH = window.innerHeight;
   const camX = Math.max(0, Math.min(3000 - viewW, game.player.x - viewW / 2));
   const camY = Math.max(0, Math.min(3000 - viewH, game.player.y - viewH / 2));
   document.getElementById('camera').style.transform = `translate(${-camX}px, ${-camY}px)`;
   
+  // BOTS
   for (let b of game.bots) {
     let dx = game.player.x - b.x;
     let dy = game.player.y - b.y;
@@ -213,11 +273,13 @@ function loop() {
     }
   }
   
+  // NUVEM
   for (let c of game.clouds) {
     let dist = Math.hypot(game.player.x - c.x, game.player.y - c.y);
     if (dist < c.r) game.player.hp -= 4;
   }
   
+  // BALAS
   for (let i = game.bullets.length - 1; i >= 0; i--) {
     let b = game.bullets[i];
     b.x += b.vx; b.y += b.vy; b.life--;
@@ -260,6 +322,7 @@ function loop() {
     if (hit || b.life <= 0) { b.el.remove(); game.bullets.splice(i, 1); }
   }
   
+  // CUBOS
   for (let i = game.cubes.length - 1; i >= 0; i--) {
     let c = game.cubes[i];
     if (Math.hypot(c.x - game.player.x, c.y - game.player.y) < 45) {
@@ -312,4 +375,4 @@ function toggleAuth() {
 function handleAuth() {
   closeModal('authModal');
   showToast('Login efetuado!');
-  }
+}
