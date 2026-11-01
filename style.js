@@ -1,6 +1,44 @@
+// ================= CONFIGURAÇÕES INICIAIS =================
+const BRAWLER_DATA = {
+  shelly: { name: 'Shelly', hp: 5000, dmg: 500, emoji: '🥷' },
+  colt: { name: 'Colt', hp: 4200, dmg: 400, emoji: '🤠' },
+  primo: { name: 'El Primo', hp: 8000, dmg: 800, emoji: '🤼' },
+  spike: { name: 'Spike', hp: 3600, dmg: 600, emoji: '🌵' },
+  corvo: { name: 'Corvo', hp: 3400, dmg: 450, emoji: '🐦' }
+};
+
+let currentPlayerData = { trophies: 0, gems: 0, coins: 0, selectedBrawler: 'shelly' };
+try {
+  const saved = localStorage.getItem('combateRoyale');
+  if (saved) currentPlayerData = JSON.parse(saved);
+} catch(e) {}
+
 let game = { active: false, player: {}, bots: [], bullets: [], walls: [], bushes: [], clouds: [], timeLeft: 300, kills: 0 };
 let moveTarget = null, animFrame = null, timerInterval = null, cloudInterval = null;
 
+// ================= FUNÇÕES DE UI =================
+function openModal(id) { document.getElementById(id).classList.add('active'); }
+function closeModal(id) { document.getElementById(id).classList.remove('active'); }
+function showToast(msg) { const t = document.getElementById('toast'); t.textContent = msg; t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 2000); }
+function returnToMenu() { 
+  document.getElementById('menuScreen').classList.remove('hide'); 
+  document.getElementById('gameScreen').classList.remove('active'); 
+  game.active = false; 
+  if(animFrame) cancelAnimationFrame(animFrame); 
+  if(timerInterval) clearInterval(timerInterval); 
+}
+
+function updateUI() {
+  if (!document.getElementById('menuTrophies')) return;
+  document.getElementById('menuTrophies').innerText = currentPlayerData.trophies;
+  document.getElementById('menuGems').innerText = currentPlayerData.gems;
+  document.getElementById('menuCoins').innerText = currentPlayerData.coins;
+  document.getElementById('menuBrawlerName').innerText = currentPlayerData.selectedBrawler.toUpperCase();
+  document.getElementById('menuBrawlerIcon').innerText = BRAWLER_DATA[currentPlayerData.selectedBrawler].emoji;
+}
+updateUI();
+
+// ================= LÓGICA DE INÍCIO DE JOGO =================
 function startSolo() {
   closeModal('eventsModal');
   document.getElementById('menuScreen').classList.add('hide');
@@ -12,9 +50,11 @@ function startSolo() {
   game.player = { x: 1000, y: 1000, hp: bData.hp, maxHp: bData.hp, brawler: currentPlayerData.selectedBrawler };
   
   document.getElementById('arena').innerHTML = '';
-  document.getElementById('hpText').innerText = bData.hp; document.getElementById('hpFill').style.width = '100%'; document.getElementById('killCount').innerText = '0';
+  document.getElementById('hpText').innerText = bData.hp; 
+  document.getElementById('hpFill').style.width = '100%'; 
+  document.getElementById('killCount').innerText = '0';
   
-  // Criar Mapa
+  // Criar Paredes
   for (let i = 0; i < 12; i++) {
     let x = Math.random() * 2000, y = Math.random() * 2000, w = 100, h = 100;
     if (Math.hypot(x - 1000, y - 1000) > 300) {
@@ -23,6 +63,8 @@ function startSolo() {
       document.getElementById('arena').appendChild(el);
     }
   }
+  
+  // Criar Arbustos
   for (let i = 0; i < 15; i++) {
     let x = Math.random() * 2000, y = Math.random() * 2000, r = 50;
     game.bushes.push({x,y,r});
@@ -30,12 +72,12 @@ function startSolo() {
     document.getElementById('arena').appendChild(el);
   }
   
-  // Player
+  // Criar Player
   let pEl = document.createElement('div'); pEl.className = 'player'; pEl.id = 'playerEl'; pEl.innerText = bData.emoji;
   pEl.style.left = game.player.x + 'px'; pEl.style.top = game.player.y + 'px';
   document.getElementById('arena').appendChild(pEl);
   
-  // Bots (9 bots de 650hp)
+  // Criar Bots
   for (let i = 0; i < 9; i++) {
     let bx = 100 + Math.random() * 1800, by = 100 + Math.random() * 1800;
     if (Math.hypot(bx - 1000, by - 1000) < 300) { bx += 500; }
@@ -61,19 +103,3 @@ function startSolo() {
   if(cloudInterval) clearInterval(cloudInterval);
   cloudInterval = setInterval(() => { if(game.active) spawnCloud(); }, 3000);
 }
-
-function setupTouchControls() {
-  const zone = document.getElementById('joystickZone');
-  zone.ontouchstart = (e) => { e.preventDefault(); updateTarget(e.touches[0]); };
-  zone.ontouchmove = (e) => { e.preventDefault(); updateTarget(e.touches[0]); };
-  zone.onmousedown = (e) => { updateTarget(e); };
-  zone.onmousemove = (e) => { if(e.buttons === 1) updateTarget(e); };
-}
-
-function updateTarget(e) {
-  const rect = document.getElementById('arena').getBoundingClientRect();
-  let tx = e.clientX - rect.left;
-  let ty = e.clientY - rect.top;
-  moveTarget = { x: tx, y: ty };
-  
-  // Atirar ao
