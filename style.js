@@ -35,6 +35,8 @@ function startSolo() {
     <div class="kill-counter">Bots: <span id="killCount">0</span>/9</div>
     <div class="timer-box" id="timerDisplay">05:00</div>
     <div id="joystickZone"></div>
+    <div id="joystickBase"></div>
+    <div id="joystickKnob"></div>
     <button id="fireBtn">🔥</button>
   `;
   gameScreen.style.display = 'block';
@@ -113,51 +115,63 @@ function spawnCloud() {
 
 function setupTouchControls() {
   const zone = document.getElementById('joystickZone');
+  const base = document.getElementById('joystickBase');
+  const knob = document.getElementById('joystickKnob');
   
-  const handleStart = (clientX, clientY, id) => {
-    if (!game.active) return;
-    moveJoystick.active = true;
-    moveJoystick.touchId = id;
-    moveJoystick.startX = window.innerWidth / 2;
-    moveJoystick.startY = window.innerHeight / 2;
-    updateJoystick(clientX, clientY);
-  };
+  let startX = 0, startY = 0;
 
-  const updateJoystick = (clientX, clientY) => {
-    let dx = clientX - moveJoystick.startX;
-    let dy = clientY - moveJoystick.startY;
-    let dist = Math.hypot(dx, dy);
-    if (dist > 50) { dx = (dx / dist) * 50; dy = (dy / dist) * 50; }
-    moveJoystick.dx = dx;
-    moveJoystick.dy = dy;
-    if (dist > 10) game.player.angle = Math.atan2(dy, dx);
-  };
-
-  const handleEnd = () => {
+  const pararBoneco = () => {
     moveJoystick.active = false;
     moveJoystick.dx = 0;
     moveJoystick.dy = 0;
-    moveJoystick.touchId = null;
+    base.style.display = 'none';
+    knob.style.display = 'none';
   };
 
-  // Toque
-  zone.addEventListener('touchstart', e => { e.preventDefault(); for(let t of e.changedTouches) handleStart(t.clientX, t.clientY, t.identifier); }, {passive: false});
-  zone.addEventListener('touchmove', e => { e.preventDefault(); for(let t of e.changedTouches) { if(t.identifier === moveJoystick.touchId) updateJoystick(t.clientX, t.clientY); } }, {passive: false});
-  zone.addEventListener('touchend', e => { e.preventDefault(); handleEnd(); }, {passive: false});
-  zone.addEventListener('touchcancel', e => { handleEnd(); }, {passive: false});
+  const handleStart = (clientX, clientY) => {
+    if (!game.active) return;
+    moveJoystick.active = true;
+    startX = clientX;
+    startY = clientY;
+    
+    base.style.display = 'block';
+    knob.style.display = 'block';
+    base.style.left = startX + 'px';
+    base.style.top = startY + 'px';
+    knob.style.left = startX + 'px';
+    knob.style.top = startY + 'px';
+  };
+
+  const updateJoystick = (clientX, clientY) => {
+    if (!moveJoystick.active) return;
+    let dx = clientX - startX;
+    let dy = clientY - startY;
+    let dist = Math.hypot(dx, dy);
+    
+    if (dist > 50) { dx = (dx / dist) * 50; dy = (dy / dist) * 50; }
+    moveJoystick.dx = dx;
+    moveJoystick.dy = dy;
+    
+    if (dist > 10) game.player.angle = Math.atan2(dy, dx);
+    
+    knob.style.left = (startX + dx) + 'px';
+    knob.style.top = (startY + dy) + 'px';
+  };
+
+  zone.addEventListener('touchstart', e => { e.preventDefault(); handleStart(e.touches[0].clientX, e.touches[0].clientY); }, {passive: false});
+  zone.addEventListener('touchmove', e => { e.preventDefault(); updateJoystick(e.touches[0].clientX, e.touches[0].clientY); }, {passive: false});
+  zone.addEventListener('touchend', e => { e.preventDefault(); pararBoneco(); }, {passive: false});
+  zone.addEventListener('touchcancel', e => { e.preventDefault(); pararBoneco(); }, {passive: false});
   
-  // Rato (PC)
-  zone.addEventListener('mousedown', e => handleStart(e.clientX, e.clientY, 'mouse'));
+  zone.addEventListener('mousedown', e => handleStart(e.clientX, e.clientY));
   zone.addEventListener('mousemove', e => { if(moveJoystick.active) updateJoystick(e.clientX, e.clientY); });
-  // Força a paragem em qualquer lugar da tela se soltar o rato
-  window.addEventListener('mouseup', () => { if(moveJoystick.active) handleEnd(); });
+  window.addEventListener('mouseup', () => { pararBoneco(); });
   
   const fireBtn = document.getElementById('fireBtn');
   fireBtn.addEventListener('touchstart', e => { e.preventDefault(); autoShoot(); }, {passive: false});
-  fireBtn.addEventListener('mousedown', e => { autoShoot(); });
+  fireBtn.addEventListener('mousedown', e => { e.preventDefault(); autoShoot(); });
 }
 
-// ================= TIRO AUTOMÁTICO =================
 function autoShoot() {
   if (!game.active || game.player.shootCooldown > 0) return;
   let closestBot = null, minDist = Infinity;
@@ -196,11 +210,9 @@ function shootBullet(x, y, angle, owner) {
   b.el = el;
 }
 
-// ================= LOOP DO JOGO =================
 function loop() {
   if (!game.active) return;
   
-  // Movimento do jogador
   if (moveJoystick.active) {
     game.player.x += moveJoystick.dx * 0.08;
     game.player.y += moveJoystick.dy * 0.08;
@@ -210,20 +222,16 @@ function loop() {
   document.getElementById('playerEl').style.left = game.player.x + 'px';
   document.getElementById('playerEl').style.top = game.player.y + 'px';
   
-  // Câmara
   const viewW = window.innerWidth;
   const viewH = window.innerHeight;
   const camX = Math.max(0, Math.min(3000 - viewW, game.player.x - viewW / 2));
   const camY = Math.max(0, Math.min(3000 - viewH, game.player.y - viewH / 2));
   document.getElementById('camera').style.transform = `translate(${-camX}px, ${-camY}px)`;
   
-  // ================= BOTS A ATACAREM TUDO =================
   for (let b of game.bots) {
-    // Encontra o alvo mais próximo (o player ou outro bot)
     let targetX = game.player.x;
     let targetY = game.player.y;
     let minDist = Math.hypot(targetX - b.x, targetY - b.y);
-    let targetType = 'player';
 
     for (let otherBot of game.bots) {
       if (otherBot.id === b.id) continue;
@@ -232,7 +240,6 @@ function loop() {
         minDist = d;
         targetX = otherBot.x;
         targetY = otherBot.y;
-        targetType = 'bot';
       }
     }
 
@@ -254,13 +261,11 @@ function loop() {
     }
   }
   
-  // Nuvem
   for (let c of game.clouds) {
     let dist = Math.hypot(game.player.x - c.x, game.player.y - c.y);
     if (dist < c.r) game.player.hp -= 4;
   }
   
-  // Balas
   for (let i = game.bullets.length - 1; i >= 0; i--) {
     let b = game.bullets[i];
     b.x += b.vx; b.y += b.vy; b.life--;
@@ -268,7 +273,6 @@ function loop() {
     
     let hit = false;
     
-    // Balas de qualquer um podem acertar em qualquer um
     if (b.owner === 'player') {
       for (let j = game.bots.length - 1; j >= 0; j--) {
         let bot = game.bots[j];
@@ -298,12 +302,9 @@ function loop() {
         }
       }
     } else {
-      // Bala de bot
-      // Acerta no player?
       if (Math.hypot(b.x - (game.player.x+28), b.y - (game.player.y+28)) < 35) {
         game.player.hp -= b.dmg; hit = true;
       }
-      // Acerta em outro bot?
       if (!hit) {
         for (let j = game.bots.length - 1; j >= 0; j--) {
           let bot = game.bots[j];
@@ -321,7 +322,6 @@ function loop() {
     if (hit || b.life <= 0) { b.el.remove(); game.bullets.splice(i, 1); }
   }
   
-  // Cubos
   for (let i = game.cubes.length - 1; i >= 0; i--) {
     let c = game.cubes[i];
     if (Math.hypot(c.x - game.player.x, c.y - game.player.y) < 45) {
@@ -375,4 +375,4 @@ function toggleAuth() {
 function handleAuth() {
   closeModal('authModal');
   showToast('Login efetuado!');
-  }
+      }
