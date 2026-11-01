@@ -23,6 +23,7 @@ let modoOnline = false;
 let outrosJogadores = {};
 let syncInterval = null;
 let salaAtual = 'sala_1';
+let meuGrupoCodigo = null;
 
 // ================= LOGIN E CONTA =================
 function handleAuth() {
@@ -64,6 +65,49 @@ function toggleAuth() {
   }
 }
 
+// ================= SISTEMA DE GRUPO =================
+function criarGrupo() {
+  if (!meuId) return showToast("Faz login primeiro!");
+  
+  const codigo = Math.random().toString(36).substring(2, 6).toUpperCase();
+  meuGrupoCodigo = codigo;
+  
+  db.ref('grupos/' + codigo).set({ dono: meuId, criadoEm: Date.now() });
+
+  document.getElementById('textoCodigoGrupo').innerText = codigo;
+  document.getElementById('grupoCodigoDisplay').style.display = 'flex';
+  document.getElementById('estadoGrupo').innerHTML = `<span style="color:#00ff88">Grupo criado! Código: <b>${codigo}</b>.</span>`;
+  showToast("Grupo Criado: " + codigo);
+}
+
+function entrarGrupo() {
+  if (!meuId) return showToast("Faz login primeiro!");
+  const codigo = document.getElementById('inputCodigoGrupo').value.toUpperCase();
+  if (!codigo) return showToast("Escreve o código!");
+
+  db.ref('grupos/' + codigo).once('value').then(snapshot => {
+    if (snapshot.exists()) {
+      meuGrupoCodigo = codigo;
+      db.ref('grupos/' + codigo + '/membros/' + meuId).set(true);
+      
+      document.getElementById('textoCodigoGrupo').innerText = codigo;
+      document.getElementById('grupoCodigoDisplay').style.display = 'flex';
+      document.getElementById('estadoGrupo').innerHTML = `<span style="color:#00ff88">Entraste no grupo <b>${codigo}</b>!</span>`;
+      showToast("Entraste no grupo!");
+      closeModal('grupoModal');
+    } else {
+      document.getElementById('estadoGrupo').innerHTML = `<span style="color:#ff3333">Código inválido ou grupo não existe.</span>`;
+    }
+  });
+}
+
+function startDuplo() {
+  if (!meuGrupoCodigo) return showToast("Cria ou entra num grupo primeiro!");
+  closeModal('eventsModal');
+  salaAtual = 'grupo_' + meuGrupoCodigo; 
+  startMultiplayer(); 
+}
+
 // ================= UI E MENUS =================
 function openModal(id) { 
   document.getElementById(id).classList.add('active'); 
@@ -98,7 +142,7 @@ function returnToMenu() {
   if(timerInterval) clearInterval(timerInterval); 
   if(cloudInterval) clearInterval(cloudInterval); 
   moveJoystick.active = false; moveJoystick.dx = 0; moveJoystick.dy = 0;
-  sairDaSala();
+  sairDaSala(); 
   document.getElementById('gameScreen').innerHTML = '';
   document.getElementById('gameScreen').style.display = 'none';
   document.getElementById('menuScreen').classList.remove('hide'); 
@@ -120,7 +164,7 @@ function updateUI() {
 }
 updateUI();
 
-// ================= CRIAÇÃO DA BASE DO JOGO =================
+// ================= INÍCIO DO JOGO =================
 function criarBaseJogo() {
   closeModal('eventsModal'); 
   document.getElementById('menuScreen').classList.add('hide'); 
@@ -180,13 +224,15 @@ function startSolo() {
     el.innerHTML += `<div style="position:absolute; top:-15px; left:0; width:100%; height:8px; background:#333; border-radius:4px; overflow:hidden;"><div id="hp-fill-bot-${i}" style="width:100%; height:100%; background:#00ff88;"></div></div>`;
     document.getElementById('arena').appendChild(el);
   }
-}// ================= MULTIPLAYER ONLINE =================
+    }
+// ================= MULTIPLAYER =================
 function startMultiplayer() {
   if (!meuId) { showToast("Faz Login primeiro para jogar Online!"); openModal('authModal'); return; }
   
   modoOnline = true;
-  criarBaseJogo();
+  if(salaAtual === 'sala_1') salaAtual = 'sala_1'; // Mantém a sala do grupo se veio de lá
   
+  criarBaseJogo();
   document.querySelector('.kill-counter').innerHTML = 'Modo: <span style="color:#00ccff">ONLINE</span>';
   
   const dbRef = db.ref('salas/' + salaAtual + '/jogadores');
@@ -240,12 +286,11 @@ function sairDaSala() {
   outrosJogadores = {};
 }
 
-// ================= MAPA =================
+// ================= MAPA E CONTROLOS =================
 function spawnBoxes() { for (let i = 0; i < 6; i++) { let bx = 200 + Math.random() * 2600, by = 200 + Math.random() * 2600; game.boxes.push({ id: i, x: bx, y: by, hp: 1000, maxHp: 1000 }); let el = document.createElement('div'); el.className = 'box'; el.id = 'box-' + i; el.style.left = bx + 'px'; el.style.top = by + 'px'; document.getElementById('arena').appendChild(el); } }
 function dropCube(x, y) { game.cubes.push({ x: x, y: y }); let el = document.createElement('div'); el.className = 'cube'; el.style.left = x + 'px'; el.style.top = y + 'px'; el.id = 'cube-' + game.cubes.length; document.getElementById('arena').appendChild(el); }
 function spawnCloud() { let cx = Math.random() * 3000, cy = Math.random() * 3000; let r = 150 + Math.random() * 100; game.clouds.push({ x: cx, y: cy, r: r }); let el = document.createElement('div'); el.className = 'cloud'; el.style.left = (cx - r) + 'px'; el.style.top = (cy - r) + 'px'; el.style.width = (r * 2) + 'px'; el.style.height = (r * 2) + 'px'; document.getElementById('arena').appendChild(el); }
 
-// ================= CONTROLOS =================
 function setupTouchControls() {
   const zone = document.getElementById('joystickZone'); const base = document.getElementById('joystickBase'); const knob = document.getElementById('joystickKnob'); let startX = 0, startY = 0;
   const pararBoneco = () => { moveJoystick.active = false; moveJoystick.dx = 0; moveJoystick.dy = 0; base.style.display = 'none'; knob.style.display = 'none'; };
@@ -377,4 +422,4 @@ function endGame(result) {
   saveData(); document.getElementById('endTitle').innerText = title;
   document.getElementById('endStats').innerHTML = `<div style="color:#00ff88; font-size:18px;">Bots Eliminados: ${game.kills}/9</div><div style="color:#ffcc00; font-size:16px; margin-top:5px;">${msg}</div>`; 
   openModal('endModal');
-}
+              }
