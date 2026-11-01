@@ -28,7 +28,29 @@ function openModal(id) {
 }
 function closeModal(id) { document.getElementById(id).classList.remove('active'); }
 function showToast(msg) { const t = document.getElementById('toast'); t.textContent = msg; t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 2000); }
-function returnToMenu() { document.getElementById('menuScreen').classList.remove('hide'); document.getElementById('gameScreen').classList.remove('active'); game.active = false; if(animFrame) cancelAnimationFrame(animFrame); if(timerInterval) clearInterval(timerInterval); }
+
+// AQUI ESTÁ A CORREÇÃO DO CONGELAMENTO
+function returnToMenu() { 
+  // 1. Para todos os loops e cronómetros
+  game.active = false; 
+  if(animFrame) cancelAnimationFrame(animFrame); 
+  if(timerInterval) clearInterval(timerInterval); 
+  if(cloudInterval) clearInterval(cloudInterval); 
+  
+  // 2. Limpa os movimentos do joystick
+  moveJoystick.active = false; moveJoystick.dx = 0; moveJoystick.dy = 0;
+  
+  // 3. Limpa a arena para libertar memória do telemóvel
+  document.getElementById('gameScreen').innerHTML = '';
+  document.getElementById('gameScreen').style.display = 'none';
+  
+  // 4. Mostra o menu e atualiza a UI
+  document.getElementById('menuScreen').classList.remove('hide'); 
+  document.getElementById('gameScreen').classList.remove('active'); 
+  closeModal('endModal');
+  updateUI();
+}
+
 function comprarGemas() { if(currentPlayerData.coins >= 500) { currentPlayerData.coins -= 500; currentPlayerData.gems += 1000; saveData(); openModal('shopModal'); showToast('+1000 Gemas!'); } else showToast('Moedas insuficientes!'); }
 function comprarCaixa() { if(currentPlayerData.gems >= 100) { currentPlayerData.gems -= 100; currentPlayerData.coins += 50; currentPlayerData.gems += 10; saveData(); openModal('shopModal'); showToast('Caixa aberta!'); } else showToast('Gemas insuficientes!'); }
 
@@ -146,7 +168,6 @@ function loop() {
     let dx = targetX - b.x; let dy = targetY - b.y;
     let minDist = Math.hypot(dx, dy);
     
-    // Distância mínima entre bots para não se empilharem (Separamento)
     let separationX = 0; let separationY = 0;
     for (let j = 0; j < game.bots.length; j++) {
         if (i === j) continue;
