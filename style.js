@@ -117,7 +117,9 @@ function autoShoot() {
 
 function shootBullet(x, y, angle, owner) {
   if (owner === 'player') game.player.shootCooldown = 20;
-  let speed = 15; let dmg = owner === 'player' ? BRAWLER_DATA[game.player.brawler].dmg : 550;
+  let speed = 15; 
+  let dmg = 450; // DANO FIXO DE 450 PARA TODOS
+  
   let b = { x: x, y: y, vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed, owner: owner, dmg: dmg, life: 60 };
   game.bullets.push(b); let el = document.createElement('div'); el.className = 'bullet'; el.style.left = (x - 9) + 'px'; el.style.top = (y - 9) + 'px';
   if (owner === 'bot') el.style.background = '#ff4444'; document.getElementById('arena').appendChild(el); b.el = el;
@@ -126,7 +128,6 @@ function shootBullet(x, y, angle, owner) {
 function loop() {
   if (!game.active) return;
   
-  // Movimento do player limitado ao mapa
   if (moveJoystick.active) { 
     game.player.x += moveJoystick.dx * 0.08; 
     game.player.y += moveJoystick.dy * 0.08; 
@@ -142,8 +143,11 @@ function loop() {
   document.getElementById('camera').style.transform = `translate(${-camX}px, ${-camY}px)`;
   
   for (let b of game.bots) {
-    let targetX = game.player.x; let targetY = game.player.y; let minDist = Math.hypot(targetX - b.x, targetY - b.y);
-    for (let otherBot of game.bots) { if (otherBot.id === b.id) continue; let d = Math.hypot(otherBot.x - b.x, otherBot.y - b.y); if (d < minDist) { minDist = d; targetX = otherBot.x; targetY = otherBot.y; } }
+    // BOTS SÓ ATACAM O JOGADOR
+    let targetX = game.player.x; 
+    let targetY = game.player.y; 
+    let minDist = Math.hypot(targetX - b.x, targetY - b.y);
+    
     let dx = targetX - b.x; let dy = targetY - b.y;
     
     if (minDist > 50) { 
@@ -151,7 +155,6 @@ function loop() {
       b.y += (dy / minDist) * b.speed; 
     }
     
-    // Limite dos bots ao mapa (Impede-os de sair da tela)
     b.x = Math.max(30, Math.min(2970, b.x));
     b.y = Math.max(30, Math.min(2970, b.y));
 
@@ -163,12 +166,20 @@ function loop() {
   
   for (let i = game.bullets.length - 1; i >= 0; i--) {
     let b = game.bullets[i]; b.x += b.vx; b.y += b.vy; b.life--; b.el.style.left = (b.x - 9) + 'px'; b.el.style.top = (b.y - 9) + 'px'; let hit = false;
+    
     if (b.owner === 'player') {
-      for (let j = game.bots.length - 1; j >= 0; j--) { let bot = game.bots[j]; if (Math.hypot(b.x - (bot.x+28), b.y - (bot.y+28)) < 35) { bot.hp -= b.dmg; if (bot.hp <= 0) { document.getElementById('bot-' + bot.id).remove(); game.bots.splice(j, 1); game.kills++; currentPlayerData.gems += 10; document.getElementById('killCount').innerText = game.kills; if (game.kills >= 9) endGame('win'); } hit = true; break; } }
+      for (let j = game.bots.length - 1; j >= 0; j--) { 
+        let bot = game.bots[j]; 
+        if (Math.hypot(b.x - (bot.x+28), b.y - (bot.y+28)) < 35) { 
+          bot.hp -= b.dmg; 
+          if (bot.hp <= 0) { document.getElementById('bot-' + bot.id).remove(); game.bots.splice(j, 1); game.kills++; currentPlayerData.gems += 10; document.getElementById('killCount').innerText = game.kills; if (game.kills >= 9) endGame('win'); } 
+          hit = true; break; 
+        } 
+      }
       if (!hit) { for (let k = game.boxes.length - 1; k >= 0; k--) { let box = game.boxes[k]; if (Math.hypot(b.x - (box.x+28), b.y - (box.y+28)) < 35) { box.hp -= b.dmg; if (box.hp <= 0) { document.getElementById('box-' + box.id).remove(); dropCube(box.x, box.y); game.boxes.splice(k, 1); } hit = true; break; } } }
     } else {
+      // Bala dos bots SÓ atinge o jogador
       if (Math.hypot(b.x - (game.player.x+28), b.y - (game.player.y+28)) < 35) { game.player.hp -= b.dmg; hit = true; }
-      if (!hit) { for (let j = game.bots.length - 1; j >= 0; j--) { let bot = game.bots[j]; if (Math.hypot(b.x - (bot.x+28), b.y - (bot.y+28)) < 35) { bot.hp -= b.dmg; if (bot.hp <= 0) { document.getElementById('bot-' + bot.id).remove(); game.bots.splice(j, 1); } hit = true; break; } } }
     }
     if (hit || b.life <= 0) { b.el.remove(); game.bullets.splice(i, 1); }
   }
