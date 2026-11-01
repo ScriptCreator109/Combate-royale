@@ -67,14 +67,21 @@ function startSolo() {
   let pEl = document.createElement('div'); pEl.className = 'player'; pEl.id = 'playerEl'; pEl.innerText = bData.emoji;
   pEl.style.left = game.player.x + 'px'; pEl.style.top = game.player.y + 'px'; document.getElementById('arena').appendChild(pEl);
   
+  // Criação dos 9 bots com barra de vida
   for (let i = 0; i < 9; i++) {
     let ang = (i / 9) * Math.PI * 2;
     let bx = 1500 + Math.cos(ang) * 400;
     let by = 1500 + Math.sin(ang) * 400;
     let b = { id: i, x: bx, y: by, hp: 2600, maxHp: 2600, speed: 1.5, shootTimer: Math.random() * 60 + 30 };
     game.bots.push(b);
+    
     let el = document.createElement('div'); el.className = 'bot'; el.id = 'bot-' + i; el.innerText = '🤖';
-    el.style.left = bx + 'px'; el.style.top = by + 'px'; document.getElementById('arena').appendChild(el);
+    el.style.left = bx + 'px'; el.style.top = by + 'px'; 
+    
+    // Adiciona a barrinha de vida em cima do bot
+    el.innerHTML += `<div id="hp-bot-${i}" style="position:absolute; top:-15px; left:0; width:100%; height:8px; background:#333; border-radius:4px; overflow:hidden;"><div id="hp-fill-bot-${i}" style="width:100%; height:100%; background:#00ff88;"></div></div>`;
+    
+    document.getElementById('arena').appendChild(el);
   }
   
   spawnBoxes(); setupTouchControls(); if(animFrame) cancelAnimationFrame(animFrame); loop();
@@ -118,7 +125,7 @@ function autoShoot() {
 function shootBullet(x, y, angle, owner) {
   if (owner === 'player') game.player.shootCooldown = 20;
   let speed = 15; 
-  let dmg = 450; // Dano de 450 para todos
+  let dmg = 450;
   
   let b = { x: x, y: y, vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed, owner: owner, dmg: dmg, life: 60, startX: x, startY: y };
   game.bullets.push(b); let el = document.createElement('div'); el.className = 'bullet'; el.style.left = (x - 9) + 'px'; el.style.top = (y - 9) + 'px';
@@ -143,7 +150,6 @@ function loop() {
   document.getElementById('camera').style.transform = `translate(${-camX}px, ${-camY}px)`;
   
   for (let b of game.bots) {
-    // Bots seguem APENAS o jogador
     let targetX = game.player.x; 
     let targetY = game.player.y; 
     let dx = targetX - b.x; 
@@ -158,7 +164,13 @@ function loop() {
     b.x = Math.max(30, Math.min(2970, b.x));
     b.y = Math.max(30, Math.min(2970, b.y));
 
-    document.getElementById('bot-' + b.id).style.left = b.x + 'px'; document.getElementById('bot-' + b.id).style.top = b.y + 'px';
+    let botEl = document.getElementById('bot-' + b.id);
+    if(botEl) {
+        botEl.style.left = b.x + 'px'; 
+        botEl.style.top = b.y + 'px';
+        let fill = document.getElementById('hp-fill-bot-' + b.id);
+        if(fill) fill.style.width = (b.hp / b.maxHp * 100) + '%';
+    }
     
     b.shootTimer--; 
     if (b.shootTimer <= 0 && minDist < 600) { 
@@ -167,12 +179,11 @@ function loop() {
     }
   }
   
+  // Nuvem Tóxica SÓ afeta o jogador
   for (let c of game.clouds) { let dist = Math.hypot(game.player.x - c.x, game.player.y - c.y); if (dist < c.r) game.player.hp -= 4; }
   
   for (let i = game.bullets.length - 1; i >= 0; i--) {
     let b = game.bullets[i]; b.x += b.vx; b.y += b.vy; b.life--; b.el.style.left = (b.x - 9) + 'px'; b.el.style.top = (b.y - 9) + 'px'; let hit = false;
-    
-    // Se a bala ainda está muito perto de quem a disparou, ignora a colisão
     let distFromStart = Math.hypot(b.x - b.startX, b.y - b.startY);
     
     if (b.owner === 'player') {
@@ -181,7 +192,8 @@ function loop() {
         if (Math.hypot(b.x - (bot.x+28), b.y - (bot.y+28)) < 35) { 
           bot.hp -= b.dmg; 
           if (bot.hp <= 0) { 
-            document.getElementById('bot-' + bot.id).remove(); game.bots.splice(j, 1); game.kills++; currentPlayerData.gems += 10; 
+            let el = document.getElementById('bot-' + bot.id); if(el) el.remove();
+            game.bots.splice(j, 1); game.kills++; currentPlayerData.gems += 10; 
             document.getElementById('killCount').innerText = game.kills; 
             if (game.kills >= 9) endGame('win'); 
           } 
@@ -190,7 +202,6 @@ function loop() {
       }
       if (!hit) { for (let k = game.boxes.length - 1; k >= 0; k--) { let box = game.boxes[k]; if (Math.hypot(b.x - (box.x+28), b.y - (box.y+28)) < 35) { box.hp -= b.dmg; if (box.hp <= 0) { document.getElementById('box-' + box.id).remove(); dropCube(box.x, box.y); game.boxes.splice(k, 1); } hit = true; break; } } }
     } else {
-      // Bala dos bots: SÓ acerta no jogador E SÓ depois de andar pelo menos 40px
       if (distFromStart > 40 && Math.hypot(b.x - (game.player.x+28), b.y - (game.player.y+28)) < 35) { 
         game.player.hp -= b.dmg; 
         hit = true; 
