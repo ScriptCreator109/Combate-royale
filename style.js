@@ -2,10 +2,86 @@ let game = { active: false, player: {}, bots: [], bullets: [], walls: [], bushes
 let moveJoystick = { active: false, dx: 0, dy: 0, touchId: null };
 let animFrame = null, timerInterval = null, cloudInterval = null;
 
-function openModal(id) { document.getElementById(id).classList.add('active'); }
+// ================= FUNÇÕES DE UI =================
+function openModal(id) { 
+  document.getElementById(id).classList.add('active'); 
+  
+  if(id === 'brawlersModal') {
+    const grid = document.getElementById('brawlersGrid');
+    grid.innerHTML = '';
+    
+    Object.keys(BRAWLER_DATA).forEach(key => {
+      const data = BRAWLER_DATA[key];
+      const owned = currentPlayerData.ownedBrawlers && currentPlayerData.ownedBrawlers[key];
+      
+      const item = document.createElement('div');
+      item.className = 'shop-item';
+      if (currentPlayerData.selectedBrawler === key) item.style.borderColor = '#00ff88';
+      
+      if (owned) {
+        item.innerHTML = `<div class="icon">${data.emoji}</div><div class="name">${data.name}</div><div class="price" style="color:#00ff88;">⭐ Selecionar</div>`;
+        item.onclick = () => { 
+          currentPlayerData.selectedBrawler = key; 
+          saveData(); 
+          closeModal('brawlersModal');
+          showToast(`${data.name} selecionado!`);
+        };
+      } else {
+        item.innerHTML = `<div class="icon">${data.emoji}</div><div class="name">${data.name}</div><div class="price" style="color:#ffcc00; font-size:10px;">${data.rarity}</div><div class="price">💎 ${data.price}</div>`;
+        item.onclick = () => {
+          if(currentPlayerData.gems >= data.price) {
+            currentPlayerData.gems -= data.price;
+            if(!currentPlayerData.ownedBrawlers) currentPlayerData.ownedBrawlers = {};
+            currentPlayerData.ownedBrawlers[key] = true;
+            saveData(); 
+            openModal('brawlersModal'); 
+            showToast(`${data.name} desbloqueado!`);
+          } else {
+            showToast('Gemas insuficientes!');
+          }
+        };
+      }
+      grid.appendChild(item);
+    });
+  }
+  
+  if(id === 'shopModal') {
+    const grid = document.getElementById('shopGrid');
+    grid.innerHTML = `
+      <div class="shop-item" onclick="comprarGemas()">
+        <div class="icon">💎</div>
+        <div class="name">1000 Gemas</div>
+        <div class="price">🪙 500 Moedas</div>
+      </div>
+      <div class="shop-item" onclick="comprarCaixa()">
+        <div class="icon">🎁</div>
+        <div class="name">Caixa Grátis</div>
+        <div class="price">💎 100 Gemas</div>
+      </div>
+    `;
+  }
+}
+
 function closeModal(id) { document.getElementById(id).classList.remove('active'); }
 function showToast(msg) { const t = document.getElementById('toast'); t.textContent = msg; t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 2000); }
 function returnToMenu() { document.getElementById('menuScreen').classList.remove('hide'); document.getElementById('gameScreen').classList.remove('active'); game.active = false; if(animFrame) cancelAnimationFrame(animFrame); if(timerInterval) clearInterval(timerInterval); }
+
+function comprarGemas() {
+  if(currentPlayerData.coins >= 500) {
+    currentPlayerData.coins -= 500;
+    currentPlayerData.gems += 1000;
+    saveData(); openModal('shopModal'); showToast('+1000 Gemas!');
+  } else showToast('Moedas insuficientes!');
+}
+
+function comprarCaixa() {
+  if(currentPlayerData.gems >= 100) {
+    currentPlayerData.gems -= 100;
+    currentPlayerData.coins += 50;
+    currentPlayerData.gems += 10;
+    saveData(); openModal('shopModal'); showToast('Caixa aberta! +50 moedas, +10 gemas');
+  } else showToast('Gemas insuficientes!');
+}
 
 function updateUI() {
   if (!document.getElementById('menuTrophies')) return;
@@ -17,6 +93,7 @@ function updateUI() {
 }
 updateUI();
 
+// ================= INÍCIO DO JOGO =================
 function startSolo() {
   closeModal('eventsModal');
   document.getElementById('menuScreen').classList.add('hide');
@@ -348,8 +425,7 @@ function endGame(result) {
   let msg = result === 'win' ? '+1000 Troféus' : 'Sem troféus desta vez.';
   if (result === 'win') currentPlayerData.trophies += 1000;
   
-  localStorage.setItem('combateRoyale', JSON.stringify(currentPlayerData));
-  updateUI();
+  saveData();
   
   document.getElementById('endTitle').innerText = title;
   document.getElementById('endStats').innerHTML = `
@@ -375,4 +451,4 @@ function toggleAuth() {
 function handleAuth() {
   closeModal('authModal');
   showToast('Login efetuado!');
-      }
+    }
