@@ -76,15 +76,24 @@ function criarGrupo() {
   
   db.ref('grupos/' + codigo).set({ dono: meuId, criadoEm: Date.now() });
 
-  document.getElementById('textoCodigoGrupo').innerText = codigo;
-  document.getElementById('grupoCodigoDisplay').style.display = 'flex';
-  document.getElementById('estadoGrupo').innerHTML = `<span style="color:#00ff88">Grupo criado! Código: <b>${codigo}</b>.</span>`;
+  const caixaCodigo = document.getElementById('grupoCodigoDisplay');
+  const textoCodigo = document.getElementById('textoCodigoGrupo');
+  
+  if (caixaCodigo && textoCodigo) {
+    textoCodigo.innerText = codigo;
+    caixaCodigo.style.display = 'flex'; 
+  } else {
+    console.log("ERRO: A caixa do código não existe no HTML!");
+  }
+
+  document.getElementById('estadoGrupo').innerHTML = `<span style="color:#00ff88;">Grupo criado! O teu código é: <b style="font-size:24px;">${codigo}</b></span>`;
   showToast("Grupo Criado: " + codigo);
 }
 
 function entrarGrupo() {
   if (!meuId) return showToast("Faz login primeiro!");
   const codigo = document.getElementById('inputCodigoGrupo').value.toUpperCase();
+  
   if (!codigo) return showToast("Escreve o código!");
 
   db.ref('grupos/' + codigo).once('value').then(snapshot => {
@@ -92,13 +101,18 @@ function entrarGrupo() {
       meuGrupoCodigo = codigo;
       db.ref('grupos/' + codigo + '/membros/' + meuId).set(true);
       
-      document.getElementById('textoCodigoGrupo').innerText = codigo;
-      document.getElementById('grupoCodigoDisplay').style.display = 'flex';
-      document.getElementById('estadoGrupo').innerHTML = `<span style="color:#00ff88">Entraste no grupo <b>${codigo}</b>!</span>`;
+      const caixaCodigo = document.getElementById('grupoCodigoDisplay');
+      const textoCodigo = document.getElementById('textoCodigoGrupo');
+      if (caixaCodigo && textoCodigo) {
+        textoCodigo.innerText = codigo;
+        caixaCodigo.style.display = 'flex';
+      }
+
+      document.getElementById('estadoGrupo').innerHTML = `<span style="color:#00ff88;">Entraste no grupo <b>${codigo}</b>!</span>`;
       showToast("Entraste no grupo!");
       closeModal('grupoModal');
     } else {
-      document.getElementById('estadoGrupo').innerHTML = `<span style="color:#ff3333">Código inválido ou grupo não existe.</span>`;
+      document.getElementById('estadoGrupo').innerHTML = `<span style="color:#ff3333;">Código inválido ou grupo não existe.</span>`;
     }
   });
 }
@@ -226,8 +240,7 @@ function startSolo() {
     el.innerHTML += `<div style="position:absolute; top:-15px; left:0; width:100%; height:8px; background:#333; border-radius:4px; overflow:hidden;"><div id="hp-fill-bot-${i}" style="width:100%; height:100%; background:#00ff88;"></div></div>`;
     document.getElementById('arena').appendChild(el);
   }
-}
-// ================= MULTIPLAYER =================
+    }// ================= MULTIPLAYER =================
 function startMultiplayer() {
   if (!meuId) { showToast("Faz Login primeiro para jogar Online!"); openModal('authModal'); return; }
   
