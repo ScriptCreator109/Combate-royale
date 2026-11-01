@@ -4,55 +4,37 @@ let animFrame = null, timerInterval = null, cloudInterval = null;
 
 function openModal(id) { 
   document.getElementById(id).classList.add('active'); 
-  
   if(id === 'brawlersModal') {
     const grid = document.getElementById('brawlersGrid');
     grid.innerHTML = '';
-    
     Object.keys(BRAWLER_DATA).forEach(key => {
       const data = BRAWLER_DATA[key];
       const owned = currentPlayerData.ownedBrawlers && currentPlayerData.ownedBrawlers[key];
-      
       const item = document.createElement('div');
       item.className = 'shop-item';
       if (currentPlayerData.selectedBrawler === key) item.style.borderColor = '#00ff88';
       
       if (owned) {
-        item.innerHTML = `<div class="icon">${data.emoji}</div><div class="name">${data.name}</div><div class="price" style="color:#00ff88; font-size:10px;">⭐ Selecionar</div>`;
-        item.onclick = () => { 
-          currentPlayerData.selectedBrawler = key; 
-          saveData(); 
-          closeModal('brawlersModal');
-          showToast(`${data.name} selecionado!`);
-        };
+        item.innerHTML = `<div class="icon">${data.emoji}</div><div class="name">${data.name}</div><div class="price" style="color:#00ff88;">⭐ Selecionar</div>`;
+        item.onclick = () => { currentPlayerData.selectedBrawler = key; saveData(); closeModal('brawlersModal'); showToast(`${data.name} selecionado!`); };
       } else {
-        item.innerHTML = `<div class="icon">${data.emoji}</div><div class="name">${data.name}</div><div class="price" style="color:#ffcc00; font-size:9px;">${data.rarity}</div><div class="price">💎 ${data.price}</div>`;
+        item.innerHTML = `<div class="icon">${data.emoji}</div><div class="name">${data.name}</div><div class="price" style="color:#ffcc00; font-size:10px;">${data.rarity}</div><div class="price">💎 ${data.price}</div>`;
         item.onclick = () => {
           if(currentPlayerData.gems >= data.price) {
             currentPlayerData.gems -= data.price;
             if(!currentPlayerData.ownedBrawlers) currentPlayerData.ownedBrawlers = {};
             currentPlayerData.ownedBrawlers[key] = true;
-            saveData(); 
-            openModal('brawlersModal'); 
-            showToast(`${data.name} desbloqueado!`);
-          } else {
-            showToast('Gemas insuficientes!');
-          }
+            saveData(); openModal('brawlersModal'); showToast(`${data.name} desbloqueado!`);
+          } else showToast('Gemas insuficientes!');
         };
       }
       grid.appendChild(item);
     });
   }
-  
   if(id === 'shopModal') {
-    const grid = document.getElementById('shopGrid');
-    grid.innerHTML = `
-      <div class="shop-item" onclick="comprarGemas()">
-        <div class="icon">💎</div><div class="name">1000 Gemas</div><div class="price">🪙 500 Moedas</div>
-      </div>
-      <div class="shop-item" onclick="comprarCaixa()">
-        <div class="icon">🎁</div><div class="name">Caixa Grátis</div><div class="price">💎 100 Gemas</div>
-      </div>
+    document.getElementById('shopGrid').innerHTML = `
+      <div class="shop-item" onclick="comprarGemas()"><div class="icon">💎</div><div class="name">1000 Gemas</div><div class="price">🪙 500 Moedas</div></div>
+      <div class="shop-item" onclick="comprarCaixa()"><div class="icon">🎁</div><div class="name">Caixa Grátis</div><div class="price">💎 100 Gemas</div></div>
     `;
   }
 }
@@ -60,13 +42,8 @@ function openModal(id) {
 function closeModal(id) { document.getElementById(id).classList.remove('active'); }
 function showToast(msg) { const t = document.getElementById('toast'); t.textContent = msg; t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 2000); }
 function returnToMenu() { document.getElementById('menuScreen').classList.remove('hide'); document.getElementById('gameScreen').classList.remove('active'); game.active = false; if(animFrame) cancelAnimationFrame(animFrame); if(timerInterval) clearInterval(timerInterval); }
-
-function comprarGemas() {
-  if(currentPlayerData.coins >= 500) { currentPlayerData.coins -= 500; currentPlayerData.gems += 1000; saveData(); openModal('shopModal'); showToast('+1000 Gemas!'); } else showToast('Moedas insuficientes!');
-}
-function comprarCaixa() {
-  if(currentPlayerData.gems >= 100) { currentPlayerData.gems -= 100; currentPlayerData.coins += 50; currentPlayerData.gems += 10; saveData(); openModal('shopModal'); showToast('Caixa aberta!'); } else showToast('Gemas insuficientes!');
-}
+function comprarGemas() { if(currentPlayerData.coins >= 500) { currentPlayerData.coins -= 500; currentPlayerData.gems += 1000; saveData(); openModal('shopModal'); showToast('+1000 Gemas!'); } else showToast('Moedas insuficientes!'); }
+function comprarCaixa() { if(currentPlayerData.gems >= 100) { currentPlayerData.gems -= 100; currentPlayerData.coins += 50; currentPlayerData.gems += 10; saveData(); openModal('shopModal'); showToast('Caixa aberta!'); } else showToast('Gemas insuficientes!'); }
 
 function updateUI() {
   if (!document.getElementById('menuTrophies')) return;
@@ -78,7 +55,6 @@ function updateUI() {
 }
 updateUI();
 
-// ================= INÍCIO DO JOGO =================
 function startSolo() {
   closeModal('eventsModal');
   document.getElementById('menuScreen').classList.add('hide');
@@ -91,6 +67,8 @@ function startSolo() {
   game.player = { x: 1500, y: 1500, hp: bData.hp, maxHp: bData.hp, brawler: currentPlayerData.selectedBrawler, shootCooldown: 0, angle: 0 };
   
   const gameScreen = document.getElementById('gameScreen');
+  
+  // A div "camera" e "arena" estão aqui, para os bots aparecerem!
   gameScreen.innerHTML = `
     <div id="camera"><div id="arena"></div></div>
     <div class="hp-bar-container"><div class="hp-text" id="hpText">${bData.hp}</div><div class="hp-bar-bg"><div class="hp-bar-fill" id="hpFill"></div></div></div>
@@ -123,7 +101,6 @@ function startSolo() {
   pEl.style.left = game.player.x + 'px'; pEl.style.top = game.player.y + 'px';
   document.getElementById('arena').appendChild(pEl);
   
-  // CRIA OS BOTS (CORRIGIDO)
   for (let i = 0; i < 9; i++) {
     let bx = 100 + Math.random() * 2800, by = 100 + Math.random() * 2800;
     if (Math.hypot(bx - 1500, by - 1500) < 600) { bx += 700; by += 700; }
@@ -147,8 +124,7 @@ function startSolo() {
   
   if(cloudInterval) clearInterval(cloudInterval);
   cloudInterval = setInterval(() => { if(game.active) spawnCloud(); }, 4000);
-}
-
+       }
 function spawnBoxes() {
   for (let i = 0; i < 6; i++) {
     let bx = 200 + Math.random() * 2600, by = 200 + Math.random() * 2600;
@@ -182,11 +158,7 @@ function setupTouchControls() {
   const knob = document.getElementById('joystickKnob');
   let startX = 0, startY = 0;
 
-  const pararBoneco = () => {
-    moveJoystick.active = false; moveJoystick.dx = 0; moveJoystick.dy = 0;
-    base.style.display = 'none'; knob.style.display = 'none';
-  };
-
+  const pararBoneco = () => { moveJoystick.active = false; moveJoystick.dx = 0; moveJoystick.dy = 0; base.style.display = 'none'; knob.style.display = 'none'; };
   const handleStart = (clientX, clientY) => {
     if (!game.active) return;
     moveJoystick.active = true; startX = clientX; startY = clientY;
@@ -194,7 +166,6 @@ function setupTouchControls() {
     base.style.left = startX + 'px'; base.style.top = startY + 'px';
     knob.style.left = startX + 'px'; knob.style.top = startY + 'px';
   };
-
   const updateJoystick = (clientX, clientY) => {
     if (!moveJoystick.active) return;
     let dx = clientX - startX; let dy = clientY - startY;
@@ -221,19 +192,13 @@ function setupTouchControls() {
 function autoShoot() {
   if (!game.active || game.player.shootCooldown > 0) return;
   let closestBot = null, minDist = Infinity;
-  for (let b of game.bots) {
-    let d = Math.hypot(b.x - game.player.x, b.y - game.player.y);
-    if (d < minDist) { minDist = d; closestBot = b; }
-  }
+  for (let b of game.bots) { let d = Math.hypot(b.x - game.player.x, b.y - game.player.y); if (d < minDist) { minDist = d; closestBot = b; } }
   if (closestBot && minDist <= 800) {
     let angle = Math.atan2(closestBot.y - game.player.y, closestBot.x - game.player.x);
     shootBullet(game.player.x + 30, game.player.y + 30, angle, 'player');
   } else {
     let closestBox = null; minDist = Infinity;
-    for (let bx of game.boxes) {
-      let d = Math.hypot(bx.x - game.player.x, bx.y - game.player.y);
-      if (d < minDist) { minDist = d; closestBox = bx; }
-    }
+    for (let bx of game.boxes) { let d = Math.hypot(bx.x - game.player.x, bx.y - game.player.y); if (d < minDist) { minDist = d; closestBox = bx; } }
     if (closestBox && minDist < 500) {
       let angle = Math.atan2(closestBox.y - game.player.y, closestBox.x - game.player.x);
       shootBullet(game.player.x + 30, game.player.y + 30, angle, 'player');
@@ -243,8 +208,7 @@ function autoShoot() {
 
 function shootBullet(x, y, angle, owner) {
   if (owner === 'player') game.player.shootCooldown = 20;
-  let speed = 15;
-  let dmg = owner === 'player' ? BRAWLER_DATA[game.player.brawler].dmg : 550;
+  let speed = 15; let dmg = owner === 'player' ? BRAWLER_DATA[game.player.brawler].dmg : 550;
   let b = { x: x, y: y, vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed, owner: owner, dmg: dmg, life: 60 };
   game.bullets.push(b);
   let el = document.createElement('div'); el.className = 'bullet';
@@ -256,12 +220,7 @@ function shootBullet(x, y, angle, owner) {
 
 function loop() {
   if (!game.active) return;
-  
-  if (moveJoystick.active) {
-    game.player.x += moveJoystick.dx * 0.08;
-    game.player.y += moveJoystick.dy * 0.08;
-  }
-  
+  if (moveJoystick.active) { game.player.x += moveJoystick.dx * 0.08; game.player.y += moveJoystick.dy * 0.08; }
   if (game.player.shootCooldown > 0) game.player.shootCooldown--;
   document.getElementById('playerEl').style.left = game.player.x + 'px';
   document.getElementById('playerEl').style.top = game.player.y + 'px';
