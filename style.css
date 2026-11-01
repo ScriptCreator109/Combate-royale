@@ -85,3 +85,13 @@ html, body { width: 100vw; height: 100vh; overflow: hidden; background: #111; fo
 .shop-item .icon { font-size: 40px; } .shop-item .name { font-size: 16px; color: #ffcc00; margin: 5px 0; } .shop-item .price { font-size: 16px; color: #00ff88; }
 #toast { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(0,0,0,0.9); color: #ffcc00; padding: 20px 40px; border-radius: 20px; border: 3px solid #ffcc00; font-size: 24px; z-index: 500; opacity: 0; transition: opacity 0.3s; pointer-events: none; text-align: center; }
 #toast.show { opacity: 1; }
+#brawlersGrid {
+  max-height: 50vh;
+  overflow-y: auto;
+  padding-right: 5px;
+}
+#shopGrid {
+  max-height: 50vh;
+  overflow-y: auto;
+  padding-right: 5px;
+}
