@@ -3,7 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
 <title>Combate Royale</title>
+<link rel="manifest" href="manifest.json">
 <link rel="stylesheet" href="style.css">
 <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
@@ -20,11 +23,12 @@
       <div class="trophy-box"><div class="icon">🏆</div><div class="val" id="menuTrophies">0</div><div class="label">Troféus</div></div>
     </div>
     <div class="top-right">
-      <!-- Código do Grupo aparece aqui -->
-      <div id="grupoCodigoDisplay" style="display:none; background:#00ff88; color:#1a1a2e; font-weight:bold; padding:8px 15px; border-radius:12px; border:3px solid #fff; align-items:center; font-size:14px; box-shadow:0 4px 0 #111;">
-        GRUPO: <span id="textoCodigoGrupo" style="margin-left:5px; letter-spacing:1px;"></span>
-      </div>
       
+      <!-- CAIXA DO CÓDIGO DO GRUPO -->
+      <div id="grupoCodigoDisplay" style="display:none; background:#00ff88; color:#1a1a2e; font-weight:bold; padding:8px 15px; border-radius:12px; border:3px solid #fff; align-items:center; font-size:14px; box-shadow:0 4px 0 #111;">
+        GRUPO: <span id="textoCodigoGrupo" style="margin-left:5px; letter-spacing:1px; font-size:18px;"></span>
+      </div>
+
       <div class="resource-box"><span class="icon">💎</span><span class="val" id="menuGems">0</span></div>
       <div class="resource-box"><span class="icon">🪙</span><span class="val" id="menuCoins">0</span></div>
       <div class="settings-btn" onclick="openModal('settingsModal')"><svg viewBox="0 0 24 24"><path d="M19.14,12.94c0.04-0.3,0.06-0.61,0.06-0.94c0-0.32-0.02-0.64-0.07-0.94l2.03-1.58c0.18-0.14,0.23-0.41,0.12-0.61 l-1.92-3.32c-0.12-0.22-0.37-0.29-0.59-0.22l-2.39,0.96c-0.5-0.38-1.03-0.7-1.62-0.94L14.4,2.81c-0.04-0.24-0.24-0.41-0.48-0.41 h-3.84c-0.24,0-0.43,0.17-0.47,0.41L9.25,5.35C8.66,5.59,8.12,5.92,7.63,6.29L5.24,5.33c-0.22-0.08-0.47,0-0.59,0.22L2.74,8.87 C2.62,9.08,2.66,9.34,2.86,9.48l2.03,1.58C4.84,11.36,4.8,11.69,4.8,12s0.02,0.64,0.07,0.94l-2.03,1.58 c-0.18,0.14-0.23,0.41-0.12,0.61l1.92,3.32c0.12,0.22,0.37,0.29,0.59,0.22l2.39-0.96c0.5,0.38,1.03,0.7,1.62,0.94l0.36,2.54 c0.05,0.24,0.24,0.41,0.48,0.41h3.84c0.24,0,0.44-0.17,0.47-0.41l0.36-2.54c0.59-0.24,1.13-0.56,1.62-0.94l2.39,0.96 c0.22,0.08,0.47,0,0.59-0.22l1.92-3.32c0.12-0.22,0.07-0.47-0.12-0.61L19.14,12.94z M12,15.6c-1.98,0-3.6-1.62-3.6-3.6 s1.62-3.6,3.6-3.6s3.6,1.62,3.6,3.6S13.98,15.6,12,15.6z"/></svg></div>
@@ -37,12 +41,12 @@
       <div class="brawler-trophies">🏆 <span id="menuBrawlerTrophies">0</span></div>
       <div class="pedestal-char" id="menuBrawlerIcon">🥷</div>
     </div>
+    
     <div class="side-btn btn-left-1" onclick="showToast('Em breve!')"><span class="icon">😊</span>BUFFIES</div>
     <div class="side-btn btn-left-2" onclick="openModal('shopModal')"><span class="icon">🛍️</span>LOJA</div>
     <div class="side-btn btn-left-3" onclick="openModal('brawlersModal')"><span class="icon">🥊</span>BRAWLERS</div>
     
     <div class="side-btn btn-right-1" onclick="showToast('Notícias em breve!')"><span class="icon">📰</span>NOTÍCIAS</div>
-    <!-- BOTÃO DE GRUPO AQUI -->
     <div class="side-btn btn-right-2" onclick="openModal('grupoModal')" style="background:#00ccff; color:#1a1a2e;"><span class="icon">👥</span>GRUPO</div>
     <div class="side-btn btn-right-3" onclick="showToast('Clube em breve!')"><span class="icon">🏆</span>CLUBE</div>
   </div>
@@ -89,10 +93,13 @@
   </div>
 </div>
 
+<!-- MODAL DE LOJA -->
 <div class="modal" id="shopModal"><div class="modal-content"><h2>🛍️ Loja</h2><p>Gemas: <span id="shopGems">0</span> | Moedas: <span id="shopCoins">0</span></p><div class="shop-grid" id="shopGrid"></div><button onclick="closeModal('shopModal')" style="background:#444;color:white;box-shadow:none;margin-top:15px;">Fechar</button></div></div>
+
+<!-- MODAL DE BRAWLERS -->
 <div class="modal" id="brawlersModal"><div class="modal-content"><h2>🥊 Brawlers</h2><div class="shop-grid" id="brawlersGrid"></div><button onclick="closeModal('brawlersModal')" style="background:#444;color:white;box-shadow:none;margin-top:15px;">Fechar</button></div></div>
 
-<!-- MENU DE EVENTOS COM COMBATE DUPLO -->
+<!-- MENU DE EVENTOS -->
 <div class="modal" id="eventsModal">
   <div class="modal-content">
     <h2>🎮 Eventos</h2>
@@ -105,12 +112,25 @@
   </div>
 </div>
 
+<!-- MODAL DE CONFIGURAÇÕES -->
 <div class="modal" id="settingsModal"><div class="modal-content"><h2>⚙️ Configurações</h2><p>Volume do Jogo</p><input type="range" min="0" max="100" value="50" style="width:100%;margin:10px 0;accent-color:#ffcc00;"><button onclick="openModal('royalIDModal')">Royal ID</button><button onclick="closeModal('settingsModal')" style="background:#444;color:white;box-shadow:none;margin-top:15px;">Fechar</button></div></div>
+
+<!-- MODAL DE ROYAL ID -->
 <div class="modal" id="royalIDModal"><div class="modal-content"><h2>🆔 Royal ID</h2><p>O teu ID de conta:</p><div id="royalResult" style="background:#1a1a2e;padding:15px;border-radius:10px;font-size:20px;color:#00ff88;letter-spacing:2px;margin-bottom:15px;">Não logado</div><button onclick="closeModal('royalIDModal')" style="background:#444;color:white;box-shadow:none;">Fechar</button></div></div>
+
+<!-- MODAL DE FIM DE JOGO -->
 <div class="modal" id="endModal"><div class="modal-content"><h2 id="endTitle">Fim de Jogo</h2><div id="endStats" style="display:flex;flex-direction:column;gap:10px;margin-bottom:20px;"></div><button onclick="closeModal('endModal'); returnToMenu()">Voltar ao Menu</button></div></div>
+
 <div id="toast"></div>
 
 <script src="dados.js"></script>
 <script src="style.js"></script>
+
+<!-- REGISTAR SERVICE WORKER PARA O APK -->
+<script>
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('sw.js');
+  }
+</script>
 </body>
 </html>
