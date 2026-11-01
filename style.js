@@ -1,7 +1,67 @@
+// ================= CONFIGURAÇÃO DO FIREBASE =================
+const firebaseConfig = {
+  apiKey: "AIzaSyByrfY5bWuyxT5G6hgKXu-AR5Bi-grK9B0",
+  authDomain: "combate-royale-3ea5a.firebaseapp.com",
+  databaseURL: "https://combate-royale-3ea5a-default-rtdb.firebaseio.com",
+  projectId: "combate-royale-3ea5a",
+  storageBucket: "combate-royale-3ea5a.firebasestorage.app",
+  messagingSenderId: "175822439339",
+  appId: "1:175822439339:web:5aa858f8a0c91c2e00c8ee",
+  measurementId: "G-6VJS2YXWWZ"
+};
+
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.database();
+let meuId = null;
+
+// ================= VARIÁVEIS DO JOGO =================
 let game = { active: false, player: {}, bots: [], bullets: [], walls: [], bushes: [], clouds: [], boxes: [], cubes: [], timeLeft: 300, kills: 0 };
 let moveJoystick = { active: false, dx: 0, dy: 0, touchId: null };
 let animFrame = null, timerInterval = null, cloudInterval = null;
 
+// ================= LOGIN E CONTA =================
+function handleAuth() {
+  const email = document.getElementById('authEmail').value;
+  const pass = document.getElementById('authPassword').value;
+  const isLogin = document.getElementById('authTitle').innerText.includes('Entrar');
+
+  if (!email || !pass) return showToast("Preenche o e-mail e a palavra-passe!");
+
+  if (isLogin) {
+    auth.signInWithEmailAndPassword(email, pass)
+      .then(() => { closeModal('authModal'); showToast('Login feito com sucesso!'); })
+      .catch(e => showToast('Erro: ' + e.message));
+  } else {
+    auth.createUserWithEmailAndPassword(email, pass)
+      .then(() => { closeModal('authModal'); showToast('Conta criada com sucesso!'); })
+      .catch(e => showToast('Erro: ' + e.message));
+  }
+}
+
+auth.onAuthStateChanged(user => {
+  if (user) {
+    meuId = user.uid;
+    document.getElementById('royalResult').innerText = "Logado com sucesso!";
+    console.log("Jogador logado:", meuId);
+  } else {
+    meuId = null;
+    document.getElementById('royalResult').innerText = "Não logado";
+  }
+});
+
+function toggleAuth() {
+  const title = document.getElementById('authTitle');
+  if (title.innerText === 'Entrar') {
+    title.innerText = 'Criar Conta'; document.getElementById('authBtn').innerText = 'Registar';
+    document.getElementById('authSwitch').innerText = 'Já tenho conta';
+  } else {
+    title.innerText = 'Entrar'; document.getElementById('authBtn').innerText = 'Entrar';
+    document.getElementById('authSwitch').innerText = 'Criar nova conta';
+  }
+}
+
+// ================= UI E MENUS =================
 function openModal(id) { 
   document.getElementById(id).classList.add('active'); 
   if(id === 'brawlersModal') {
@@ -29,22 +89,14 @@ function openModal(id) {
 function closeModal(id) { document.getElementById(id).classList.remove('active'); }
 function showToast(msg) { const t = document.getElementById('toast'); t.textContent = msg; t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 2000); }
 
-// AQUI ESTÁ A CORREÇÃO DO CONGELAMENTO
 function returnToMenu() { 
-  // 1. Para todos os loops e cronómetros
   game.active = false; 
   if(animFrame) cancelAnimationFrame(animFrame); 
   if(timerInterval) clearInterval(timerInterval); 
   if(cloudInterval) clearInterval(cloudInterval); 
-  
-  // 2. Limpa os movimentos do joystick
   moveJoystick.active = false; moveJoystick.dx = 0; moveJoystick.dy = 0;
-  
-  // 3. Limpa a arena para libertar memória do telemóvel
   document.getElementById('gameScreen').innerHTML = '';
   document.getElementById('gameScreen').style.display = 'none';
-  
-  // 4. Mostra o menu e atualiza a UI
   document.getElementById('menuScreen').classList.remove('hide'); 
   document.getElementById('gameScreen').classList.remove('active'); 
   closeModal('endModal');
@@ -56,11 +108,15 @@ function comprarCaixa() { if(currentPlayerData.gems >= 100) { currentPlayerData.
 
 function updateUI() {
   if (!document.getElementById('menuTrophies')) return;
-  document.getElementById('menuTrophies').innerText = currentPlayerData.trophies; document.getElementById('menuGems').innerText = currentPlayerData.gems; document.getElementById('menuCoins').innerText = currentPlayerData.coins;
-  document.getElementById('menuBrawlerName').innerText = currentPlayerData.selectedBrawler.toUpperCase(); document.getElementById('menuBrawlerIcon').innerText = BRAWLER_DATA[currentPlayerData.selectedBrawler].emoji;
+  document.getElementById('menuTrophies').innerText = currentPlayerData.trophies; 
+  document.getElementById('menuGems').innerText = currentPlayerData.gems; 
+  document.getElementById('menuCoins').innerText = currentPlayerData.coins;
+  document.getElementById('menuBrawlerName').innerText = currentPlayerData.selectedBrawler.toUpperCase(); 
+  document.getElementById('menuBrawlerIcon').innerText = BRAWLER_DATA[currentPlayerData.selectedBrawler].emoji;
 }
 updateUI();
 
+// ================= JOGO =================
 function startSolo() {
   closeModal('eventsModal'); document.getElementById('menuScreen').classList.add('hide'); document.getElementById('gameScreen').classList.add('active');
   game.active = true; game.bots = []; game.bullets = []; game.clouds = []; game.walls = []; game.bushes = []; game.boxes = []; game.cubes = []; game.kills = 0; game.timeLeft = 300; 
@@ -249,7 +305,4 @@ function endGame(result) {
   let title = result === 'win' ? '🏆 VITÓRIA!' : (result === 'draw' ? '🤝 EMPATE' : '💀 DERROTA'); let msg = result === 'win' ? '+1000 Troféus' : 'Sem troféus desta vez.'; if (result === 'win') currentPlayerData.trophies += 1000;
   saveData(); document.getElementById('endTitle').innerText = title;
   document.getElementById('endStats').innerHTML = `<div style="color:#00ff88; font-size:18px;">Bots Eliminados: ${game.kills}/9</div><div style="color:#ffcc00; font-size:16px; margin-top:5px;">${msg}</div>`; openModal('endModal');
-}
-
-function toggleAuth() { const title = document.getElementById('authTitle'); if (title.innerText === 'Entrar') { title.innerText = 'Criar Conta'; document.getElementById('authBtn').innerText = 'Registar'; document.getElementById('authSwitch').innerText = 'Já tenho conta'; } else { title.innerText = 'Entrar'; document.getElementById('authBtn').innerText = 'Entrar'; document.getElementById('authSwitch').innerText = 'Criar nova conta'; } }
-function handleAuth() { closeModal('authModal'); showToast('Login efetuado!'); }
+    }
