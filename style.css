@@ -40,13 +40,12 @@ html, body { width: 100vw; height: 100vh; overflow: hidden; background: #111; fo
 .event-btn { background: #2b2b40; border: 3px solid #1a1a2e; border-radius: 14px; padding: 15px 35px; display: flex; flex-direction: column; align-items: center; box-shadow: 0 5px 0 #111; cursor: pointer; font-size: 16px; color: #ffcc00; }
 .event-btn .mode { font-size: 12px; color: #00ff88; margin-top: 2px; }
 
-/* TELA DE JOGO (A CÂMERA FICA AQUI) */
+/* TELA DE JOGO */
 #gameScreen { position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; background: #2a4a2a; display: none; z-index: 50; overflow: hidden; }
 #gameScreen.active { display: block; }
 
-/* O MAPA E A CÂMERA */
 #camera { position: absolute; top: 0; left: 0; width: 100%; height: 100%; transform-origin: top left; }
-#arena { position: absolute; top: 0; left: 0; width: 2500px; height: 2500px; overflow: hidden; background: #2a4a2a; }
+#arena { position: absolute; top: 0; left: 0; width: 3000px; height: 3000px; overflow: hidden; background: #2a4a2a; }
 
 .hp-bar-container { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); width: 40%; max-width: 450px; display: flex; align-items: center; gap: 15px; z-index: 60; }
 .hp-bar-bg { flex: 1; height: 30px; background: #333; border: 4px solid #000; border-radius: 15px; overflow: hidden; box-shadow: 0 4px 0 #111; }
@@ -82,4 +81,4 @@ html, body { width: 100vw; height: 100vh; overflow: hidden; background: #111; fo
 .shop-item { background: #1a1a2e; border: 3px solid #444; border-radius: 15px; padding: 15px; display: flex; flex-direction: column; align-items: center; cursor: pointer; }
 .shop-item .icon { font-size: 40px; } .shop-item .name { font-size: 16px; color: #ffcc00; margin: 5px 0; } .shop-item .price { font-size: 16px; color: #00ff88; }
 #toast { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(0,0,0,0.9); color: #ffcc00; padding: 20px 40px; border-radius: 20px; border: 3px solid #ffcc00; font-size: 24px; z-index: 500; opacity: 0; transition: opacity 0.3s; pointer-events: none; text-align: center; }
-#toast.show { opacity: 1; }{ opacity: 1; }
+#toast.show { opacity: 1; }
