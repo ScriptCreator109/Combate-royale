@@ -1,6 +1,6 @@
 @import url('https://fonts.googleapis.com/css2?family=Lilita+One&display=swap');
 * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; user-select: none; }
-html, body { width: 100vw; height: 100vh; overflow: hidden; background: #111; font-family: 'Lilita One', cursive, Arial, sans-serif; color: white; position: fixed; top: 0; left: 0; touch-action: none; }
+html, body { width: 100vw; height: 100vh; overflow: hidden; background: #111; font-family: 'Lilita One', cursive, Arial, sans-serif; color: white; position: fixed; top: 0; left: 0; }
 
 #rotateMsg { display: none; position: fixed; inset: 0; background: #1a0033; z-index: 9999; justify-content: center; align-items: center; flex-direction: column; text-align: center; padding: 20px; }
 #rotateMsg h2 { color: #ffcc00; font-size: 32px; margin-bottom: 10px; }
@@ -40,7 +40,7 @@ html, body { width: 100vw; height: 100vh; overflow: hidden; background: #111; fo
 .event-btn .mode { font-size: 12px; color: #00ff88; margin-top: 2px; }
 
 /* TELA DE JOGO */
-#gameScreen { position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; background: #2a4a2a; display: none; z-index: 50; overflow: hidden; touch-action: none; }
+#gameScreen { position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; background: #2a4a2a; display: none; z-index: 50; overflow: hidden; }
 #gameScreen.active { display: block; }
 #camera { position: absolute; top: 0; left: 0; width: 100%; height: 100%; transform-origin: top left; }
 #arena { position: absolute; top: 0; left: 0; width: 3000px; height: 3000px; overflow: hidden; background: #2a4a2a; }
@@ -70,37 +70,32 @@ html, body { width: 100vw; height: 100vh; overflow: hidden; background: #111; fo
 .box { width: 55px; height: 55px; background: #d4a017; border: 4px solid #8b6508; border-radius: 8px; z-index: 11; box-shadow: 0 0 15px rgba(255, 215, 0, 0.5); }
 .cube { width: 28px; height: 28px; background: #ff00ff; border: 3px solid #fff; border-radius: 6px; z-index: 13; box-shadow: 0 0 15px #ff00ff; }
 
-/* MODAIS E SCROLL */
+/* MODAIS E SCROLL CORRIGIDO */
 .modal { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.85); display: none; justify-content: center; align-items: center; z-index: 200; padding: 20px; }
 .modal.active { display: flex; }
-.modal-content { background: #2b2b40; border: 5px solid #ffcc00; border-radius: 25px; padding: 30px; max-width: 600px; width: 100%; text-align: center; box-shadow: 0 0 40px rgba(255,204,0,0.4); max-height: 90vh; display: flex; flex-direction: column; }
-.modal-content h2 { color: #ffcc00; margin-bottom: 20px; font-size: 28px; flex-shrink: 0; }
-.modal-content p { color: #ccc; margin-bottom: 20px; font-size: 16px; flex-shrink: 0; }
-.modal-content button { background: #ffcc00; color: #1a1a2e; border: none; padding: 15px 40px; border-radius: 15px; font-family: inherit; font-size: 20px; cursor: pointer; box-shadow: 0 5px 0 #b38f00; margin-top: 10px; flex-shrink: 0; }
+.modal-content { background: #2b2b40; border: 5px solid #ffcc00; border-radius: 25px; padding: 20px; max-width: 600px; width: 100%; text-align: center; box-shadow: 0 0 40px rgba(255,204,0,0.4); max-height: 90vh; display: flex; flex-direction: column; }
+.modal-content h2 { color: #ffcc00; margin-bottom: 15px; font-size: 24px; flex-shrink: 0; }
+.modal-content button { background: #ffcc00; color: #1a1a2e; border: none; padding: 12px 30px; border-radius: 15px; font-family: inherit; font-size: 18px; cursor: pointer; box-shadow: 0 5px 0 #b38f00; margin-top: 15px; flex-shrink: 0; }
 .modal-content button:active { transform: translateY(5px); box-shadow: none; }
-.input-field { width: 100%; padding: 15px; border-radius: 12px; border: 3px solid #555; background: #1a1a2e; color: white; font-family: inherit; margin-bottom: 15px; font-size: 18px; flex-shrink: 0; }
 
-/* AQUI ESTÁ A CORREÇÃO DO SCROLL */
+/* Aqui está a magia do scroll no telemóvel */
 .shop-grid { 
   display: grid; 
   grid-template-columns: repeat(2, 1fr); 
-  gap: 15px; 
+  gap: 10px; 
   margin-top: 10px;
-  overflow-y: auto !important; /* Permite descer */
-  touch-action: pan-y !important; /* Permite o toque de arrastar para baixo */
-  -webkit-overflow-scrolling: touch; /* Scroll suave no iOS */
-  max-height: 55vh; 
+  overflow-y: scroll !important; 
+  touch-action: pan-y !important; 
+  -webkit-overflow-scrolling: touch; 
+  max-height: 60vh; 
   padding-bottom: 20px;
-  padding-right: 5px;
 }
-
-/* Barra de scroll bonita */
 .shop-grid::-webkit-scrollbar { width: 8px; }
-.shop-grid::-webkit-scrollbar-track { background: #1a1a2e; border-radius: 10px; }
+.shop-grid::-webkit-scrollbar-track { background: #1a1a2e; }
 .shop-grid::-webkit-scrollbar-thumb { background: #ffcc00; border-radius: 10px; }
 
-.shop-item { background: #1a1a2e; border: 3px solid #444; border-radius: 15px; padding: 15px; display: flex; flex-direction: column; align-items: center; cursor: pointer; }
-.shop-item .icon { font-size: 40px; } .shop-item .name { font-size: 16px; color: #ffcc00; margin: 5px 0; } .shop-item .price { font-size: 16px; color: #00ff88; }
+.shop-item { background: #1a1a2e; border: 3px solid #444; border-radius: 15px; padding: 10px; display: flex; flex-direction: column; align-items: center; cursor: pointer; }
+.shop-item .icon { font-size: 35px; } .shop-item .name { font-size: 14px; color: #ffcc00; margin: 5px 0; } .shop-item .price { font-size: 12px; color: #00ff88; }
 
 #toast { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(0,0,0,0.9); color: #ffcc00; padding: 20px 40px; border-radius: 20px; border: 3px solid #ffcc00; font-size: 24px; z-index: 500; opacity: 0; transition: opacity 0.3s; pointer-events: none; text-align: center; }
 #toast.show { opacity: 1; }
