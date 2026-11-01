@@ -1,0 +1,18 @@
+{
+  "name": "Combate Royale",
+  "short_name": "Combate Royale",
+  "description": "O teu jogo de combate mobile!",
+  "start_url": "./index.html",
+  "display": "fullscreen",
+  "orientation": "landscape",
+  "background_color": "#1a0033",
+  "theme_color": "#ffcc00",
+  "icons": [
+    {
+      "src": "CombateRoyal.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
