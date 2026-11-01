@@ -67,10 +67,9 @@ function startSolo() {
   let pEl = document.createElement('div'); pEl.className = 'player'; pEl.id = 'playerEl'; pEl.innerText = bData.emoji;
   pEl.style.left = game.player.x + 'px'; pEl.style.top = game.player.y + 'px'; document.getElementById('arena').appendChild(pEl);
   
-  // BOTS COM 2600 DE VIDA E PERTO DE TI
   for (let i = 0; i < 9; i++) {
     let ang = (i / 9) * Math.PI * 2;
-    let bx = 1500 + Math.cos(ang) * 400; // 400px de distância para aparecerem na tela
+    let bx = 1500 + Math.cos(ang) * 400;
     let by = 1500 + Math.sin(ang) * 400;
     let b = { id: i, x: bx, y: by, hp: 2600, maxHp: 2600, speed: 1.5, shootTimer: Math.random() * 60 };
     game.bots.push(b);
@@ -126,9 +125,18 @@ function shootBullet(x, y, angle, owner) {
 
 function loop() {
   if (!game.active) return;
-  if (moveJoystick.active) { game.player.x += moveJoystick.dx * 0.08; game.player.y += moveJoystick.dy * 0.08; }
+  
+  // Movimento do player limitado ao mapa
+  if (moveJoystick.active) { 
+    game.player.x += moveJoystick.dx * 0.08; 
+    game.player.y += moveJoystick.dy * 0.08; 
+  }
+  game.player.x = Math.max(30, Math.min(2970, game.player.x));
+  game.player.y = Math.max(30, Math.min(2970, game.player.y));
+
   if (game.player.shootCooldown > 0) game.player.shootCooldown--;
   document.getElementById('playerEl').style.left = game.player.x + 'px'; document.getElementById('playerEl').style.top = game.player.y + 'px';
+  
   const viewW = window.innerWidth; const viewH = window.innerHeight;
   const camX = Math.max(0, Math.min(3000 - viewW, game.player.x - viewW / 2)); const camY = Math.max(0, Math.min(3000 - viewH, game.player.y - viewH / 2));
   document.getElementById('camera').style.transform = `translate(${-camX}px, ${-camY}px)`;
@@ -137,7 +145,16 @@ function loop() {
     let targetX = game.player.x; let targetY = game.player.y; let minDist = Math.hypot(targetX - b.x, targetY - b.y);
     for (let otherBot of game.bots) { if (otherBot.id === b.id) continue; let d = Math.hypot(otherBot.x - b.x, otherBot.y - b.y); if (d < minDist) { minDist = d; targetX = otherBot.x; targetY = otherBot.y; } }
     let dx = targetX - b.x; let dy = targetY - b.y;
-    if (minDist > 50) { b.x += (dx / minDist) * b.speed; b.y += (dy / minDist) * b.speed; }
+    
+    if (minDist > 50) { 
+      b.x += (dx / minDist) * b.speed; 
+      b.y += (dy / minDist) * b.speed; 
+    }
+    
+    // Limite dos bots ao mapa (Impede-os de sair da tela)
+    b.x = Math.max(30, Math.min(2970, b.x));
+    b.y = Math.max(30, Math.min(2970, b.y));
+
     document.getElementById('bot-' + b.id).style.left = b.x + 'px'; document.getElementById('bot-' + b.id).style.top = b.y + 'px';
     b.shootTimer--; if (b.shootTimer <= 0 && minDist < 600) { b.shootTimer = 80 + Math.random() * 50; shootBullet(b.x + 28, b.y + 28, Math.atan2(dy, dx), 'bot'); }
   }
