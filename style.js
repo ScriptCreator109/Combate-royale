@@ -14,6 +14,7 @@ firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.database();
 let meuId = null;
+let meuNome = "Jogador";
 
 // ================= VARIÁVEIS DO JOGO =================
 let game = { active: false, player: {}, bots: [], bullets: [], walls: [], bushes: [], clouds: [], boxes: [], cubes: [], timeLeft: 300, kills: 0 };
@@ -47,7 +48,8 @@ function handleAuth() {
 auth.onAuthStateChanged(user => {
   if (user) {
     meuId = user.uid;
-    if(document.getElementById('royalResult')) document.getElementById('royalResult').innerText = "Logado com sucesso!";
+    meuNome = user.email.split('@')[0];
+    if(document.getElementById('royalResult')) document.getElementById('royalResult').innerText = "Logado: " + meuNome;
   } else {
     meuId = null;
     if(document.getElementById('royalResult')) document.getElementById('royalResult').innerText = "Não logado";
@@ -224,20 +226,26 @@ function startSolo() {
     el.innerHTML += `<div style="position:absolute; top:-15px; left:0; width:100%; height:8px; background:#333; border-radius:4px; overflow:hidden;"><div id="hp-fill-bot-${i}" style="width:100%; height:100%; background:#00ff88;"></div></div>`;
     document.getElementById('arena').appendChild(el);
   }
-    }
+}
 // ================= MULTIPLAYER =================
 function startMultiplayer() {
   if (!meuId) { showToast("Faz Login primeiro para jogar Online!"); openModal('authModal'); return; }
   
   modoOnline = true;
-  if(salaAtual === 'sala_1') salaAtual = 'sala_1'; // Mantém a sala do grupo se veio de lá
-  
   criarBaseJogo();
+  
   document.querySelector('.kill-counter').innerHTML = 'Modo: <span style="color:#00ccff">ONLINE</span>';
   
   const dbRef = db.ref('salas/' + salaAtual + '/jogadores');
+  
+  let posX = game.player.x + (Math.random() * 100 - 50);
+  let posY = game.player.y + (Math.random() * 100 - 50);
+  
   dbRef.child(meuId).set({
-    x: game.player.x, y: game.player.y, hp: game.player.hp, brawler: currentPlayerData.selectedBrawler, emoji: BRAWLER_DATA[currentPlayerData.selectedBrawler].emoji
+    x: posX, y: posY, hp: game.player.hp, 
+    brawler: currentPlayerData.selectedBrawler, 
+    emoji: BRAWLER_DATA[currentPlayerData.selectedBrawler].emoji,
+    nome: meuNome
   });
 
   dbRef.on('value', (snapshot) => {
@@ -247,15 +255,22 @@ function startMultiplayer() {
     for (let id in jogadores) {
       if (id === meuId) continue;
       let p = jogadores[id];
+      
       if (!outrosJogadores[id]) {
         let el = document.createElement('div');
         el.className = 'player'; 
         el.style.background = 'radial-gradient(circle at 30% 30%, #ff00ff, #9900cc)';
-        el.id = 'op-' + id; el.innerText = p.emoji;
-        el.innerHTML += `<div style="position:absolute; top:-15px; left:0; width:100%; height:8px; background:#333; border-radius:4px; overflow:hidden;"><div id="hp-op-${id}" style="width:100%; height:100%; background:#00ccff;"></div></div>`;
+        el.id = 'op-' + id; 
+        el.innerText = p.emoji;
+        
+        el.innerHTML += `
+          <div style="position:absolute; top:-25px; left:50%; transform:translateX(-50%); color:#fff; font-size:10px; text-shadow:1px 1px 0 #000, -1px -1px 0 #000; white-space:nowrap;">${p.nome}</div>
+          <div style="position:absolute; top:-15px; left:0; width:100%; height:8px; background:#333; border-radius:4px; overflow:hidden;"><div id="hp-op-${id}" style="width:100%; height:100%; background:#00ccff;"></div></div>
+        `;
         document.getElementById('arena').appendChild(el);
         outrosJogadores[id] = { el: el };
       }
+      
       let el = document.getElementById('op-' + id);
       if (el) {
         el.style.left = p.x + 'px'; el.style.top = p.y + 'px';
@@ -286,11 +301,12 @@ function sairDaSala() {
   outrosJogadores = {};
 }
 
-// ================= MAPA E CONTROLOS =================
+// ================= MAPA =================
 function spawnBoxes() { for (let i = 0; i < 6; i++) { let bx = 200 + Math.random() * 2600, by = 200 + Math.random() * 2600; game.boxes.push({ id: i, x: bx, y: by, hp: 1000, maxHp: 1000 }); let el = document.createElement('div'); el.className = 'box'; el.id = 'box-' + i; el.style.left = bx + 'px'; el.style.top = by + 'px'; document.getElementById('arena').appendChild(el); } }
 function dropCube(x, y) { game.cubes.push({ x: x, y: y }); let el = document.createElement('div'); el.className = 'cube'; el.style.left = x + 'px'; el.style.top = y + 'px'; el.id = 'cube-' + game.cubes.length; document.getElementById('arena').appendChild(el); }
 function spawnCloud() { let cx = Math.random() * 3000, cy = Math.random() * 3000; let r = 150 + Math.random() * 100; game.clouds.push({ x: cx, y: cy, r: r }); let el = document.createElement('div'); el.className = 'cloud'; el.style.left = (cx - r) + 'px'; el.style.top = (cy - r) + 'px'; el.style.width = (r * 2) + 'px'; el.style.height = (r * 2) + 'px'; document.getElementById('arena').appendChild(el); }
 
+// ================= CONTROLOS =================
 function setupTouchControls() {
   const zone = document.getElementById('joystickZone'); const base = document.getElementById('joystickBase'); const knob = document.getElementById('joystickKnob'); let startX = 0, startY = 0;
   const pararBoneco = () => { moveJoystick.active = false; moveJoystick.dx = 0; moveJoystick.dy = 0; base.style.display = 'none'; knob.style.display = 'none'; };
@@ -422,4 +438,4 @@ function endGame(result) {
   saveData(); document.getElementById('endTitle').innerText = title;
   document.getElementById('endStats').innerHTML = `<div style="color:#00ff88; font-size:18px;">Bots Eliminados: ${game.kills}/9</div><div style="color:#ffcc00; font-size:16px; margin-top:5px;">${msg}</div>`; 
   openModal('endModal');
-              }
+    }
